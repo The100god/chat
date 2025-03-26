@@ -3,6 +3,9 @@ const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const  cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
+const friendRoutes = require("./routes/friendRoutes");
+const chatRoutes = require("./routes/chatRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
 dotenv.config();
 const app = express()
@@ -13,6 +16,10 @@ app.use(cors());
 
 //Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/friends", friendRoutes)
+app.use("/api/chat", chatRoutes)
+app.use("/api/message", messageRoutes)
+
 
 //connect MongoDb
 

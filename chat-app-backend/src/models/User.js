@@ -20,6 +20,22 @@ const UserSchema = new mongoose.Schema({
         type:Date,
         default:Date.now,
     },
+    profilePic: {
+        type: String,
+        default: '', // Optional profile picture
+    },
+    friends: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    friendRequests: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     
 })
 
