@@ -5,8 +5,8 @@
 
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0f0e0e;
+  --foreground: #ffffff;
 }
 
 @theme inline {
