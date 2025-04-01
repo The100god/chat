@@ -37,6 +37,7 @@ const {login} = useAuth();
         const token = response.data.token;
         if (token){
             login(token)
+            localStorage.setItem("userId", response.data.userId)
         }
         setMessage(response.data.message || "success")
         setError(null)

@@ -1,21 +1,22 @@
-"use client"
+"use client";
 
 import { useAuth } from "./context/AuthContext";
+import ResizableLayout from "./components/ResizableLayout"; // Import ResizableLayout
+import LeftSection from "./pages/leftSection/page";
+import ChatArea from "./pages/chatAreas/page";
 
 export default function Home() {
-  const {isAuthenticated, logout} = useAuth();
-  if(!isAuthenticated){
-    return null
+  const { isAuthenticated } = useAuth();
+  
+  
+  if (!isAuthenticated) {
+    return null; // Don't show anything if not authenticated
   }
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <h1 className="text-4xl font-bold mb-6">🎉 Welcome to Chat App!</h1>
-      <button
-        onClick={logout}
-        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-      >
-        Logout
-      </button>
-    </div>
+    // <div className="flex min-h-screen bg-gray-100">
+      <ResizableLayout leftComponent={<LeftSection />} rightComponent={<ChatArea />}/>
+      
+    // </div>
   );
 }

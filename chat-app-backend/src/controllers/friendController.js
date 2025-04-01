@@ -52,16 +52,46 @@ const respondToFriendRequest = async (req, res) => {
   }
 };
 
-// Get Friend List
+// // Get Friend List
+// const getFriends = async (req, res) => {
+//   const { userId } = req.body;
+
+//   try {
+//     const user = await User.findById(userId).populate(
+//       "friends",
+//       "username email"
+//     );
+//     res.status(200).json(user.friends);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// Get Friend List with Unread Message Count
 const getFriends = async (req, res) => {
-  const { userId } = req.body;
+  const { userId } = req.params;  // Get userId from URL params
 
   try {
-    const user = await User.findById(userId).populate(
-      "friends",
-      "username email"
-    );
-    res.status(200).json(user.friends);
+    // Find user and populate friends
+    const user = await User.findById(userId).populate("friends", "username profilePic");
+    
+    // Get all friends details with unread message count
+    const friendDetails = await Promise.all(user.friends.map(async (friend) => {
+      // Get unread message count for each friend
+      const unreadMessagesCount = await Message.countDocuments({
+        sender: friend._id,
+        isRead: false
+      });
+
+      return {
+        friendId: friend._id,
+        username: friend.username,
+        profilePic: friend.profilePic,
+        unreadMessagesCount
+      };
+    }));
+
+    res.status(200).json(friendDetails);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
