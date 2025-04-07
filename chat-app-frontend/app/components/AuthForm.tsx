@@ -1,7 +1,8 @@
 'use client';
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import {disconnectSocket, useSocket} from "../hooks/useSocket";
 
 interface AuthFormProps {
   type: "signup" | "login";
@@ -19,12 +20,26 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
   });
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-const {login} = useAuth(); 
+  const [varUserId, setVarUserId] = useState<string | null>(null)
+  const {login} = useAuth(); 
   const handleChange = (e:React.ChangeEvent<HTMLInputElement>)=>{
     setFormData({
         ...formData, [e.target.name]:e.target.value
     })
   }
+
+  useEffect(()=>{
+    if(varUserId){
+      const socket = useSocket(varUserId)
+      console.log("🔗 Socket connected for user:", varUserId);
+
+      return () => {
+        disconnectSocket();
+        console.log("🔌 Socket disconnected");
+      };
+    }
+  }, [varUserId]);
+
 
   const handleSubmit = async (e:React.FormEvent<HTMLFormElement>)=>{
     e.preventDefault()
@@ -35,9 +50,11 @@ const {login} = useAuth();
 
         const response = await axios.post(url, formData)
         const token = response.data.token;
-        if (token){
+        const returnedUserId = response.data.userId;
+        if (token && returnedUserId){
             login(token)
-            localStorage.setItem("userId", response.data.userId)
+            setVarUserId(returnedUserId)
+            localStorage.setItem("userId", returnedUserId)
         }
         setMessage(response.data.message || "success")
         setError(null)

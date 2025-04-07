@@ -32,10 +32,10 @@ const ResizableLayout: React.FC<ResizableLayoutProps> = ({ leftComponent, rightC
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen w-full">
       {/* Left Section */}
       <div
-        className="flex-shrink-0 bg-gray-100 border-r border-gray-300 p-2"
+        className="flex-shrink-0 bg-black border-r border-gray-300 p-2"
         style={{ width: `${leftWidth}px`, minWidth: "250px", maxWidth: "75vw" }}
       >
         {leftComponent}
@@ -43,12 +43,12 @@ const ResizableLayout: React.FC<ResizableLayoutProps> = ({ leftComponent, rightC
 
       {/* Resizable Divider */}
       <div
-        className="cursor-col-resize bg-gray-400 w-[6px] hover:bg-gray-600 transition"
+        className="cursor-col-resize bg-gray-400 w-[6px] hover:bg-white transition"
         onMouseDown={handleMouseDown}
       />
 
       {/* Right Section */}
-      <div className="flex-grow bg-white p-4">{rightComponent}</div>
+      <div className="flex-grow bg-black">{rightComponent}</div>
     </div>
   );
 };

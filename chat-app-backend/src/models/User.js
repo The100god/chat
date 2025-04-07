@@ -22,7 +22,7 @@ const UserSchema = new mongoose.Schema({
     },
     profilePic: {
         type: String,
-        default: '', // Optional profile picture
+        default: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0hKWzEg5DKQttwLus5tvIqozRQL-BKXF9EQ&s', // Optional profile picture
     },
     friends: [
       {

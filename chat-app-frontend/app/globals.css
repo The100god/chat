@@ -28,3 +28,40 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+.glow {
+  box-shadow:
+    0 0 14px rgba(255, 255, 255, 0.2),
+    0 0 9px rgba(252, 251, 244, 0.3),
+    0 0 21px rgba(249, 248, 243, 0.2);
+  transition: box-shadow 0.5s ease-in-out;
+}
+
+.shimmer-mask {
+  background: linear-gradient(
+    120deg,
+    rgba(13, 34, 70, 0.05) 0%,
+    rgba(5, 10, 55, 0.2) 50%,
+    rgba(8, 1, 64, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite ease-in-out;
+  mix-blend-mode: overlay;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}

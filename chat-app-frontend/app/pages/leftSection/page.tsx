@@ -2,8 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import axios from "axios";
 import FriendsList from "../../components/FriendsList";
+import { useAtom } from "jotai";
+import {
+  allFriendsAtom,
+  findFriendAtom,
+  friendsAtom,
+  friendsCountsAtom,
+  friendsRequestsAtom,
+} from "../../states/States";
+import FindUser from "../../components/FindUser";
+import FriendRequests from "../../components/FriendRequests";
+import AllFriends from "../../components/AllFriends";
+import { useSocket } from "../../hooks/useSocket";
 
 interface Friend {
   friendId: string;
@@ -14,16 +25,24 @@ interface Friend {
 
 export default function LeftSection() {
   const { isAuthenticated } = useAuth();
-  const [friends, setFriends] = useState<Friend[]>([]);
+  const [friends, setFriends] = useAtom(friendsAtom);
   const [loading, setLoading] = useState<boolean>(true);
+  const [findFriend] = useAtom(findFriendAtom);
+  const [friendsRequests] = useAtom(friendsRequestsAtom);
+  const [allFriends] = useAtom(allFriendsAtom);
+  const [, setFriendsCounts] = useAtom(friendsCountsAtom);
 
+  const userId = localStorage.getItem("userId")? localStorage.getItem("userId") : null;;
+  const socket = useSocket(userId);
   // Fetch friends data from backend
   const fetchFriends = async () => {
     try {
-      const response = await axios.get(
-        `http://localhost:5000/api/friends/${localStorage.getItem("userId")}`
+      const response = await fetch(
+        `http://localhost:5000/api/friends/get-friends/${userId}`
       );
-      setFriends(response.data);
+      const data = await response.json();
+      console.log(data)
+      setFriends(data);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching friends:", error);
@@ -42,10 +61,38 @@ export default function LeftSection() {
     return null; // Don't show anything if not authenticated
   }
 
-  return (
-      <div className="p-4">
+  // Listen to real-time updates from socket
+  useEffect(() => {
+    if (!socket || !userId) return;
 
-      <FriendsList friends={friends} loading={loading} />
-      </div>
+    const handleFriendsUpdate = (updatedFriends: Friend[]) => {
+      setFriends(updatedFriends);
+    };
+
+    socket.on("friendsUpdated", handleFriendsUpdate);
+
+    return () => {
+      socket.off("friendsUpdated", handleFriendsUpdate);
+    };
+  }, [socket, userId]);
+
+  useEffect(() => {
+    setFriendsCounts(friends.length);
+  }, [friends]);
+
+  
+console.log("friends", friends)
+  return (
+    <div className="p-4 bg-transparent">
+      {findFriend ? (
+        <FindUser />
+      ) : friendsRequests ? (
+        <FriendRequests />
+      ) : allFriends ? (
+        <AllFriends friends={friends} loading={loading} />
+      ) : (
+        <FriendsList friends={friends} loading={loading} />
+      )}
+    </div>
   );
 }

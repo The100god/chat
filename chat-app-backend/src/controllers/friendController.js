@@ -1,3 +1,4 @@
+const Message = require("../models/Message");
 const User = require("../models/User");
 
 // send Friend request
@@ -20,7 +21,22 @@ const sendFriendRequest = async (req, res) => {
   }
 };
 
-// Accept/Reject Friends request
+// Get pending friend requests
+const getFriendRequests = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await User.findById(userId).populate(
+      "friendRequests",
+      "username email"
+    );
+    res.status(200).json(user.friendRequests);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Accept/Reject Friends request use when we ahve REST api
 
 const respondToFriendRequest = async (req, res) => {
   const { userId, senderId, action } = req.body;
@@ -36,7 +52,7 @@ const respondToFriendRequest = async (req, res) => {
       (id) => id.toString() !== senderId
     );
 
-    if (action === "accept") {
+    if (action === "accepted") {
       //add to friends list if accepted
       user.friends.push(senderId);
       const sender = await User.findById(senderId);
@@ -49,6 +65,72 @@ const respondToFriendRequest = async (req, res) => {
     await user.save();
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+// use when we have socket.io
+
+const handleFriendRequestSocket = async ({ senderId, receiverId, status,io, users }) => {
+  const receiver = await User.findById(receiverId);
+  if (!receiver) throw new Error("Receiver not found");
+
+  if (!receiver.friendRequests.includes(senderId)) {
+    throw new Error("No friend request found");
+  }
+
+  // Remove senderId from friendRequests
+  receiver.friendRequests = receiver.friendRequests.filter(
+    (id) => id.toString() !== senderId
+  );
+
+  if (status === "accepted") {
+    receiver.friends.push(senderId);
+
+    const sender = await User.findById(senderId);
+    if (!sender) throw new Error("Sender not found");
+
+    sender.friends.push(receiverId);
+    await sender.save();
+  }
+
+  await receiver.save();
+  // Re-fetch updated friends list for both users
+  const getFriendDetails = async (userId) => {
+    const user = await User.findById(userId).populate(
+      "friends",
+      "username profilePic"
+    );
+    const friendDetails = await Promise.all(
+      user.friends.map(async (friend) => {
+        const unreadMessagesCount = await Message.countDocuments({
+          sender: friend._id,
+          receiver: userId,
+          isRead: false,
+        });
+        return {
+          friendId: friend._id,
+          username: friend.username,
+          profilePic: friend.profilePic,
+          unreadMessagesCount,
+        };
+      })
+    );
+    return friendDetails;
+  };
+
+  const receiverFriendsList = await getFriendDetails(receiverId);
+  const senderFriendsList = sender ? await getFriendDetails(senderId) : [];
+
+  // Emit to receiver (update friend list)
+  const receiverSocket = users.get(receiverId);
+  if (receiverSocket) {
+    io.to(receiverSocket).emit("friendsUpdated", receiverFriendsList);
+  }
+
+  // Emit to sender (update friend list)
+  const senderSocket = users.get(senderId);
+  if (senderSocket) {
+    io.to(senderSocket).emit("friendsUpdated", senderFriendsList);
   }
 };
 
@@ -69,30 +151,58 @@ const respondToFriendRequest = async (req, res) => {
 
 // Get Friend List with Unread Message Count
 const getFriends = async (req, res) => {
-  const { userId } = req.params;  // Get userId from URL params
+  const { userId } = req.params; // ✅ Get userId from URL params
 
   try {
-    // Find user and populate friends
-    const user = await User.findById(userId).populate("friends", "username profilePic");
-    
-    // Get all friends details with unread message count
-    const friendDetails = await Promise.all(user.friends.map(async (friend) => {
-      // Get unread message count for each friend
-      const unreadMessagesCount = await Message.countDocuments({
-        sender: friend._id,
-        isRead: false
-      });
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
 
-      return {
-        friendId: friend._id,
-        username: friend.username,
-        profilePic: friend.profilePic,
-        unreadMessagesCount
-      };
-    }));
+    // ✅ Find user and populate friends
+    const user = await User.findById(userId).populate(
+      "friends",
+      "username profilePic"
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (!user.friends || user.friends.length === 0) {
+      return res.status(200).json([]); // ✅ Return empty array if no friends
+    }
+
+    // ✅ Get all friends details with unread message count
+    const friendDetails = await Promise.all(
+      user.friends.map(async (friend) => {
+        try {
+          const unreadMessagesCount = await Message.countDocuments({
+            sender: friend._id,
+            receiver: userId, // ✅ Check messages where friend is sender and user is receiver
+            isRead: false, // ✅ Only count unread messages
+          });
+
+          return {
+            friendId: friend._id,
+            username: friend.username,
+            profilePic: friend.profilePic,
+            unreadMessagesCount,
+          };
+        } catch (messageError) {
+          console.error("Error fetching unread messages:", messageError);
+          return {
+            friendId: friend._id,
+            username: friend.username,
+            profilePic: friend.profilePic,
+            unreadMessagesCount: 0, // If error, return 0 unread messages
+          };
+        }
+      })
+    );
 
     res.status(200).json(friendDetails);
   } catch (error) {
+    console.error("Error in getFriends:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -129,4 +239,6 @@ module.exports = {
   respondToFriendRequest,
   getFriends,
   removeFriend,
+  getFriendRequests,
+  handleFriendRequestSocket,
 };

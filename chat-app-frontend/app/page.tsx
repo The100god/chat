@@ -14,9 +14,8 @@ export default function Home() {
   }
 
   return (
-    // <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen w-full" >
       <ResizableLayout leftComponent={<LeftSection />} rightComponent={<ChatArea />}/>
-      
-    // </div>
+    </div>
   );
 }
