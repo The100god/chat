@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { selectedFriendAtom } from "../states/States";
+import { friendsAtom, selectedFriendAtom } from "../states/States";
 import { useAtom } from "jotai";
 
 interface Friend {
@@ -17,6 +17,31 @@ interface FriendsListProps {
 
 const FriendsList: React.FC<FriendsListProps> = ({ friends, loading }) => {
   const [, setSelectedFriend] = useAtom(selectedFriendAtom);
+  const [, setFriends] = useAtom(friendsAtom);
+
+  const handleSelectFriend = (friend: Friend) => {
+    setSelectedFriend(friend);
+
+    // Sync to backend and mark messages as read
+    const userId = localStorage.getItem("userId");
+    console.log("ids", )
+    if (userId) {
+      fetch("http://localhost:5000/api/message/mark-read", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ senderId: friend.friendId, receiverId: userId }),
+      });
+    }
+
+    // Update global state to reset unread count
+    setFriends((prev) =>
+      prev.map((f) =>
+        f.friendId === friend.friendId ? { ...f, unreadMessagesCount: 0 } : f
+      )
+    );
+  };
 
   return (
     <div className="p-4 bg-transparent">
@@ -27,7 +52,7 @@ const FriendsList: React.FC<FriendsListProps> = ({ friends, loading }) => {
           {friends.map((friend) => (
             <li
               key={friend.friendId}
-              onClick={() => setSelectedFriend(friend)}
+              onClick={() => handleSelectFriend(friend)}
               className="flex items-center bg-gray-900 p-2 rounded-xl cursor-pointer hover:bg-gray-800 transition duration-200"
             >
               <img

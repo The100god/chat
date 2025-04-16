@@ -17,6 +17,10 @@ const messageSchema = new mongoose.Schema({
         type:String,
         require:true,
     },
+    media: {
+        type: [String], // array of base64 strings
+  default: [],
+    },
     isRead:{
         type:Boolean,
         default:false

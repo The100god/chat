@@ -14,7 +14,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen w-full" >
+    <div className="flex w-full" style={{height:"calc(100vh - 112px)"}} >
       <ResizableLayout leftComponent={<LeftSection />} rightComponent={<ChatArea />}/>
     </div>
   );

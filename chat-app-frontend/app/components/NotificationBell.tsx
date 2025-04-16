@@ -3,31 +3,7 @@ import { useEffect, useState } from "react";
 import { Bell } from "lucide-react"; // Using Lucide Icons
 import { getSocket, useSocket } from "../hooks/useSocket";
 
-// Function to fetch pending friend requests count
-// const fetchRequestCount = async (userId: string|null) => {
-//   const response = await fetch(`http://localhost:5000/api/friends/friend-requests/${userId}`);
-//   const data = await response.json();
-//   return data.length;
-// };
-
 const NotificationBell = () => {
-//   const [requestCount, setRequestCount] = useState(0);
-//   const userId = localStorage.getItem("userId");
-
-//   useEffect(() => {
-//     if (userId) {
-//       const updateCount = async () => {
-//         const count = await fetchRequestCount(userId);
-//         setRequestCount(count);
-//       };
-
-//       updateCount();
-
-//       // Poll every 10 seconds for updates
-//       const interval = setInterval(updateCount, 10000);
-//       return () => clearInterval(interval);
-//     }
-//   }, [userId]);
 
 const [requestCount, setRequestCount] = useState(0);
   const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;

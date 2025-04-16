@@ -115,11 +115,12 @@ const handleFriendRequestSocket = async ({ senderId, receiverId, status,io, user
         };
       })
     );
+    console.log("unreadMessagesCount1", unreadMessagesCount)
+    // console.log("friendDetails", friendDetails)
     return friendDetails;
   };
-
   const receiverFriendsList = await getFriendDetails(receiverId);
-  const senderFriendsList = sender ? await getFriendDetails(senderId) : [];
+  const senderFriendsList = status === "accepted" ? await getFriendDetails(senderId) : [];
 
   // Emit to receiver (update friend list)
   const receiverSocket = users.get(receiverId);
@@ -133,6 +134,8 @@ const handleFriendRequestSocket = async ({ senderId, receiverId, status,io, user
     io.to(senderSocket).emit("friendsUpdated", senderFriendsList);
   }
 };
+
+
 
 // // Get Friend List
 // const getFriends = async (req, res) => {
@@ -151,14 +154,14 @@ const handleFriendRequestSocket = async ({ senderId, receiverId, status,io, user
 
 // Get Friend List with Unread Message Count
 const getFriends = async (req, res) => {
-  const { userId } = req.params; // ✅ Get userId from URL params
+  const { userId } = req.params; // Get userId from URL params
 
   try {
     if (!userId) {
       return res.status(400).json({ error: "User ID is required" });
     }
 
-    // ✅ Find user and populate friends
+    // Find user and populate friends
     const user = await User.findById(userId).populate(
       "friends",
       "username profilePic"
@@ -169,19 +172,19 @@ const getFriends = async (req, res) => {
     }
 
     if (!user.friends || user.friends.length === 0) {
-      return res.status(200).json([]); // ✅ Return empty array if no friends
+      return res.status(200).json([]); // Return empty array if no friends
     }
 
-    // ✅ Get all friends details with unread message count
+    // Get all friends details with unread message count
     const friendDetails = await Promise.all(
       user.friends.map(async (friend) => {
         try {
           const unreadMessagesCount = await Message.countDocuments({
             sender: friend._id,
-            receiver: userId, // ✅ Check messages where friend is sender and user is receiver
-            isRead: false, // ✅ Only count unread messages
+            receiver: userId, // Check messages where friend is sender and user is receiver
+            isRead: false, // Only count unread messages
           });
-
+// console.log("unreadMessagesCount", unreadMessagesCount)
           return {
             friendId: friend._id,
             username: friend.username,

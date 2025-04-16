@@ -32,7 +32,7 @@ export default function LeftSection() {
   const [allFriends] = useAtom(allFriendsAtom);
   const [, setFriendsCounts] = useAtom(friendsCountsAtom);
 
-  const userId = localStorage.getItem("userId")? localStorage.getItem("userId") : null;;
+  const [userId] = useState(() => localStorage.getItem("userId"));
   const socket = useSocket(userId);
   // Fetch friends data from backend
   const fetchFriends = async () => {
@@ -41,7 +41,7 @@ export default function LeftSection() {
         `http://localhost:5000/api/friends/get-friends/${userId}`
       );
       const data = await response.json();
-      console.log(data)
+      // console.log(data)
       setFriends(data);
       setLoading(false);
     } catch (error) {
@@ -57,10 +57,6 @@ export default function LeftSection() {
     }
   }, [isAuthenticated]);
 
-  if (!isAuthenticated) {
-    return null; // Don't show anything if not authenticated
-  }
-
   // Listen to real-time updates from socket
   useEffect(() => {
     if (!socket || !userId) return;
@@ -69,19 +65,49 @@ export default function LeftSection() {
       setFriends(updatedFriends);
     };
 
-    socket.on("friendsUpdated", handleFriendsUpdate);
+    const handleUnseenCountUpdate = ({
+      friendId,
+      count,
+    }: {
+      friendId: string;
+      count: number;
+    }) => {
+      console.log("count", count);
+      setFriends((prevFriends) =>
+        prevFriends.map((friend) =>
+          friend.friendId === friendId
+            ? { ...friend, unreadMessagesCount: count }
+            : friend
+        )
+      );
+    };
 
+    socket.on("friendsUpdated", handleFriendsUpdate);
+    // socket.on("update_unseen_count", handleUnseenCountUpdate);
+    socket.on("unreadMessageCountUpdated", handleUnseenCountUpdate);
+    // 🔌 Ask for unseen count on reconnect/mount
+    socket.emit("getFriendListWithUnseen", { userId });
     return () => {
       socket.off("friendsUpdated", handleFriendsUpdate);
+      socket.off("unreadMessageCountUpdated", handleUnseenCountUpdate);
+      // socket.off("update_unseen_count", handleUnseenCountUpdate);
     };
-  }, [socket, userId]);
+  }, [socket]);
 
   useEffect(() => {
-    setFriendsCounts(friends.length);
+    setFriendsCounts((prev) => {
+      if (prev !== friends.length) {
+        return friends.length;
+      }
+      return prev;
+    });
   }, [friends]);
 
-  
-console.log("friends", friends)
+  if (!isAuthenticated) {
+    return null; // Don't show anything if not authenticated
+  }
+
+  console.log("friends", friends);
   return (
     <div className="p-4 bg-transparent">
       {findFriend ? (

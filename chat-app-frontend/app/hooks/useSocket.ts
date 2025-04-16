@@ -8,7 +8,11 @@ export const useSocket = (
 ): Socket<DefaultEventsMap, DefaultEventsMap> | null => {
   if (!socket && userId) {
     socket = io("http://localhost:5000");
+    console.log("socketconnect", socket)
     socket.emit("join", userId);
+  }
+  if (userId && socket) {
+    socket.emit("join", userId); // Join personal room for unseen updates
   }
 
   return socket;
