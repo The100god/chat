@@ -17,7 +17,7 @@ exports.sendMessages = async (req, res) => {
         allowed_formats: ["jpg", "png", "jpeg", "gif", "mp4", "webm"],
         resource_type: "auto", // supports image & video
       });
-      console.log("uploaded", uploaded)
+      // console.log("uploaded", uploaded)
       mediaUrls.push(uploaded.secure_url);
     }
 

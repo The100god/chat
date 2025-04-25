@@ -14,17 +14,22 @@ import { useAtom } from "jotai";
 import {
   allFriendsAtom,
   findFriendAtom,
+  findFriendWithChatAtom,
   friendsCountsAtom,
   friendsRequestsAtom,
+  groupChatOpenAtom,
 } from "../states/States";
 import NotificationBell from "./NotificationBell";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const Header: React.FC = () => {
   const { isAuthenticated, logout } = useAuth();
   const [, setFindFriend] = useAtom(findFriendAtom);
+  const [, setFindFriendWithChat] = useAtom(findFriendWithChatAtom);
   const [, setFriendsRequests] = useAtom(friendsRequestsAtom);
   const [, setAllFriends] = useAtom(allFriendsAtom);
+  const [, setGroupChatOpen] = useAtom(groupChatOpenAtom);
   const [friendsCounts] = useAtom(friendsCountsAtom);
 
   const headerRef = useRef<HTMLDivElement>(null);
@@ -32,6 +37,8 @@ const Header: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [canAnimate, setCanAnimate] = useState(false);
   const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter()
+
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!canAnimate || !headerRef.current) return;
@@ -80,7 +87,6 @@ const Header: React.FC = () => {
   // Dummy data (replace with real data from backend)
   const friendCount = friendsCounts;
   const profilePic = "/profile.jpg"; // Dummy profile image
-
   return (
     <header className="w-full bg-black shadow-md py-4 px-6 flex justify-between items-center">
       <div
@@ -113,9 +119,16 @@ const Header: React.FC = () => {
             />
           </Link>
 
-          <Link href="/">
+          <div
+            onClick={() => {
+              setFindFriend(false);
+              setFriendsRequests(false);
+              setAllFriends(false);
+              setFindFriendWithChat(true)
+              router.push("/")
+            }}>
             <div className="text-2xl font-bold text-lime-300">Gappo</div>
-          </Link>
+          </div>
         </div>
 
         {/* Center Section - Gappo Logo */}
@@ -126,6 +139,8 @@ const Header: React.FC = () => {
               setFindFriend(false);
               setFriendsRequests(false);
               setAllFriends(false);
+              setFindFriendWithChat(true)
+              router.push("/")
             }}
             className="flex cursor-pointer items-center space-x-2 hover:text-lime-300"
           >
@@ -138,6 +153,9 @@ const Header: React.FC = () => {
               setFindFriend(true);
               setFriendsRequests(false);
               setAllFriends(false);
+              setGroupChatOpen(false)
+              setFindFriendWithChat(false)
+
             }}
             className="flex cursor-pointer items-center space-x-2 hover:text-lime-300"
           >
@@ -150,6 +168,9 @@ const Header: React.FC = () => {
               setFindFriend(false);
               setFriendsRequests(true);
               setAllFriends(false);
+              setGroupChatOpen(false)
+              setFindFriendWithChat(false)
+
             }}
             className="flex relative cursor-pointer items-center space-x-2 hover:text-lime-300"
           >
@@ -166,6 +187,9 @@ const Header: React.FC = () => {
               setFindFriend(false);
               setFriendsRequests(false);
               setAllFriends(true);
+              setGroupChatOpen(false)
+              setFindFriendWithChat(false)
+
             }}
             className="flex cursor-pointer items-center space-x-2 hover:text-lime-300"
           >
@@ -174,13 +198,20 @@ const Header: React.FC = () => {
           </div>
 
           {/* Groups */}
-          <Link
-            href="/groups"
-            className="flex items-center space-x-2 hover:text-lime-300"
+          <div
+            onClick={() => {
+              setFindFriend(false);
+              setFriendsRequests(false);
+              setAllFriends(false);
+              setGroupChatOpen(true)
+              setFindFriendWithChat(false)
+
+            }}
+            className="flex cursor-pointer items-center space-x-2 hover:text-lime-300"
           >
             <FaUsers size={24} />
             <span>Groups</span>
-          </Link>
+          </div>
         </div>
 
         {/* Right Section */}

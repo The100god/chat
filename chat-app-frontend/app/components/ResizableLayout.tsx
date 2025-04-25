@@ -32,7 +32,7 @@ const ResizableLayout: React.FC<ResizableLayoutProps> = ({ leftComponent, rightC
   };
 
   return (
-    <div className="flex h-full w-full">
+    <div className="flex h-full w-full overflow-hidden">
       {/* Left Section */}
       <div
         className="flex-shrink-0 bg-black border-r border-gray-300 p-2"

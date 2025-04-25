@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react";
-import { Bell } from "lucide-react"; // Using Lucide Icons
+// import { Bell } from "lucide-react"; // Using Lucide Icons
 import { getSocket, useSocket } from "../hooks/useSocket";
 
 const NotificationBell = () => {
@@ -15,20 +15,20 @@ const [requestCount, setRequestCount] = useState(0);
 
     const socket = getSocket();
 
-    // 📥 Initial fetch from server via socket
+    //Initial fetch from server via socket
     socket?.emit("getFriendRequests", { userId });
 
-    // 📌 When server sends the full friend requests list
+    // When server sends the full friend requests list
     const handleFriendRequestsList = (data: any[]) => {
       setRequestCount(data.length);
     };
 
-    // 🆕 When a new friend request is received
+    // When a new friend request is received
     const handleNewFriendRequest = ({ senderId }: { senderId: string }) => {
       setRequestCount((prev) => prev + 1);
     };
 
-    // ✅ When user accepts or declines a request
+    // When user accepts or declines a request
     const handleRequestHandled = () => {
       setRequestCount((prev) => Math.max(prev - 1, 0));
     };

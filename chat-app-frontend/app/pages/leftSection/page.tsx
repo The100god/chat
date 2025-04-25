@@ -7,14 +7,17 @@ import { useAtom } from "jotai";
 import {
   allFriendsAtom,
   findFriendAtom,
+  findFriendWithChatAtom,
   friendsAtom,
   friendsCountsAtom,
   friendsRequestsAtom,
+  groupChatOpenAtom,
 } from "../../states/States";
 import FindUser from "../../components/FindUser";
 import FriendRequests from "../../components/FriendRequests";
 import AllFriends from "../../components/AllFriends";
 import { useSocket } from "../../hooks/useSocket";
+import GroupChatPage from "../../components/GroupChatPage";
 
 interface Friend {
   friendId: string;
@@ -30,7 +33,9 @@ export default function LeftSection() {
   const [findFriend] = useAtom(findFriendAtom);
   const [friendsRequests] = useAtom(friendsRequestsAtom);
   const [allFriends] = useAtom(allFriendsAtom);
+  const [groupChatOpen] = useAtom(groupChatOpenAtom);
   const [, setFriendsCounts] = useAtom(friendsCountsAtom);
+  const [findFriendWithChat] = useAtom(findFriendWithChatAtom);
 
   const [userId] = useState(() => localStorage.getItem("userId"));
   const socket = useSocket(userId);
@@ -110,15 +115,29 @@ export default function LeftSection() {
   console.log("friends", friends);
   return (
     <div className="p-4 bg-transparent">
-      {findFriend ? (
+
+      {findFriend &&
+        <FindUser />}
+       {friendsRequests &&
+        <FriendRequests />}
+      {allFriends &&
+        <AllFriends friends={friends} loading={loading} />}
+      {groupChatOpen &&
+        <GroupChatPage/>}
+      
+      { findFriendWithChat && <FriendsList friends={friends} loading={loading} />
+    }
+      {/* {findFriend ? (
         <FindUser />
       ) : friendsRequests ? (
         <FriendRequests />
       ) : allFriends ? (
         <AllFriends friends={friends} loading={loading} />
-      ) : (
+      ) : groupChatOpen ? (
+        <GroupChatPage/>
+      ): (
         <FriendsList friends={friends} loading={loading} />
-      )}
+      )} */}
     </div>
   );
 }

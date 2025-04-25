@@ -3,7 +3,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSocket } from "../../hooks/useSocket";
 import { useAtom } from "jotai";
-import { friendsAtom, selectedFriendAtom } from "../../states/States";
+import { friendsAtom, selectedFriendAtom, selectedGroupAtom } from "../../states/States";
+import MediaViewerModal from "../../components/MediaViewerModal";
+import EmojiPicker from "../../components/EmojiPicker";
+import VoiceRecorder from "../../components/VoiceRecorder";
+import { X } from "lucide-react";
 
 interface Message {
   _id?: string;
@@ -22,7 +26,6 @@ interface Message {
   isRead?: boolean;
 }
 
-
 export interface Friend {
   friendId: string;
   username: string;
@@ -37,33 +40,48 @@ export default function ChatArea() {
   const socket = useSocket(userId);
   // const hasMounted = useRef(false);
   const shouldScroll = useRef(true);
-
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [modalMedia, setModalMedia] = useState<string[]>([]);
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [showEmoji, setShowEmoji] = useState(false);
   const [selectedFriend] = useAtom(selectedFriendAtom);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState<string>("");
   const [chatId, setChatId] = useState<string | null>(null);
   const [friends, setFriends] = useAtom(friendsAtom);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [typingFriend, setTypingFriend] = useState<string | null>(null);
   let typingTimeout: NodeJS.Timeout;
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [previewVisible, setPreviewVisible] = useState(false);
-  const MAX_SIZE_MB = 50;
+  const [loadingMessages, setLoadingMessages] = useState(true);
+  const [hasAutoScrolled, setHasAutoScrolled] = useState(false);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
+
+  //group
+  const [selectedGroup] = useAtom(selectedGroupAtom);
+
+
 
   // Join chat and fetch messages
   useEffect(() => {
-    if (!selectedFriend || !userId) return;
+    console.log("selectedGroup", selectedGroup)
+    if ((!selectedFriend && !selectedGroup) || !userId) return;
 
+    setLoadingMessages(true);
     const fetchChat = async () => {
       shouldScroll.current = true; // Only scroll on opening chat
-
+      setHasAutoScrolled(false); // allow auto-scroll for new friend
       try {
-        const res = await fetch(`http://localhost:5000/api/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify([userId, selectedFriend.friendId]),
-        });
+        if(selectedFriend){
+
+          const res = await fetch(`http://localhost:5000/api/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify([userId, selectedFriend?.friendId]),
+          });
+        
         const data = await res.json();
         setChatId(data._id);
         // console.log("data", data._id);
@@ -79,18 +97,43 @@ export default function ChatArea() {
         const messagesData = await messagesRes.json();
         if (messagesData.length > 0) {
           setMessages(messagesData);
+          setLoadingMessages(false);
+          
         } else {
           setMessages([]); // or handle the error gracefully
           console.error("Fetched messages is not an array", messagesData);
         }
+      }
+      else if(selectedGroup){
+        const res = await fetch(`http://localhost:5000/api/groups/group-message/${selectedGroup._id}`)
+        const messagesData = await res.json();
+        setChatId(selectedGroup._id)
+
+        
+
+        if (messagesData.length > 0){
+          setMessages(messagesData);
+          setLoadingMessages(false);
+        } else {
+          setMessages([]); // or handle the error gracefully
+          console.error("Fetched group messages is not an array", messagesData);
+        }      
+
+      }
       } catch (err) {
         console.error("Error fetching chat or messages:", err);
       }
     };
 
     fetchChat();
-  }, [selectedFriend, chatId, socket]);
+  }, [selectedFriend,selectedGroup, chatId, socket]);
 
+  useEffect(() => {
+    if (socket && selectedGroup?._id) {
+      socket.emit("joinGroup", selectedGroup._id);
+      console.log("🔗 Joined group socket room:", selectedGroup._id);
+    }
+  }, [selectedGroup, socket]);
   // Receive new messages via Socket.IO
   useEffect(() => {
     if (!socket || !chatId) return;
@@ -109,12 +152,28 @@ export default function ChatArea() {
       // }
     };
 
-    socket.on("newMessage", handleNewMessage);
+    socket.on("newMessage", handleNewMessage)
 
     return () => {
-      socket.off("newMessage", handleNewMessage);
+      socket.off("newMessage", handleNewMessage)
     };
-  }, [socket, chatId]);
+  }, [socket, chatId, selectedFriend]);
+
+  useEffect(() => {
+    if (!socket || !selectedGroup) return;
+  
+    const handleGroupMessage = (message: Message) => {
+      if (message.chatId === selectedGroup._id) {
+        setMessages((prev) => [...prev, message]);
+      }
+    };
+  
+    socket.on("receiverGroupMessage", handleGroupMessage);
+  
+    return () => {
+      socket.off("receiverGroupMessage", handleGroupMessage);
+    };
+  }, [socket, selectedGroup]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessageInput(e.target.value);
@@ -141,52 +200,65 @@ export default function ChatArea() {
 
   const sendMessage = async () => {
     if (
-      !messageInput.trim() ||
       !chatId ||
       !userId ||
-      !selectedFriend ||
-      !socket
+      (!selectedFriend && !selectedGroup) ||
+      !socket ||
+      (!messageInput.trim() && mediaFiles.length === 0)
     )
       return;
 
-      // Convert media files to base64
-  const convertToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
+    // Convert media files to base64
+    const convertToBase64 = (file: File): Promise<string> =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = (error) => reject(error);
+      });
 
-    
     try {
-      const mediaBase64 = await Promise.all(mediaFiles.map((file) => convertToBase64(file)));
-      console.log("media", mediaBase64)
+      const mediaBase64 = await Promise.all(
+        mediaFiles.map((file) => convertToBase64(file))
+      );
+      console.log("media", mediaBase64);
       const newMessage = {
         chatId,
         senderId: userId,
-        receiverId: selectedFriend.friendId,
-        content: messageInput,
+        receiverId: selectedFriend?.friendId,
+        content: messageInput.trim(),
         media: mediaBase64,
         isRead: false,
       };
-      const res = await fetch("http://localhost:5000/api/message", {
+      setMessages((prev) => [
+        ...prev,
+        {
+          ...newMessage,
+          sender: userId,
+          _id: `local-${Date.now()}`, // temporary until real _id from backend
+        },
+      ]);
+      console.log("selectedGroup._id", selectedGroup?._id)
+      const endpoint = selectedGroup ? "http://localhost:5000/api/groups/send-group-message" : "http://localhost:5000/api/message";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newMessage),
+        body: JSON.stringify( selectedGroup ? {
+          groupId:selectedGroup._id, senderId:userId, content:messageInput.trim(), media:mediaBase64
+        }:newMessage),
       });
 
       const savedMessage = await res.json();
-      console.log("saveMessage", savedMessage);
-      //   // Optimistically update the UI
-      // setMessages((prev) => [...prev, savedMessage]);
-      // Scroll to bottom if allowed
-      if (shouldScroll.current && bottomRef.current) {
-        bottomRef.current.scrollIntoView({ behavior: "smooth" });
-      }
-      // Send message to Socket.IO server to broadcast
 
-      socket.emit("sendMessage", {
+      console.log("saveMessage", savedMessage);
+      
+      setLoadingMessages(false);
+      socket.emit(selectedGroup?"sendGroupMessage":"sendMessage", selectedGroup?{
+        groupId:chatId,
+        senderId:userId, 
+        content:savedMessage.content, 
+        media:savedMessage.media,
+      }:{
         chatId: savedMessage.chatId,
         senderId: savedMessage.sender._id,
         receiverId: savedMessage.receiver,
@@ -196,8 +268,8 @@ export default function ChatArea() {
 
       // Update local message state
       setMediaFiles([]);
-    setPreviewVisible(false);
-    setMessageInput("");
+      setPreviewVisible(false);
+      setMessageInput("");
     } catch (err) {
       console.error("Error sending message:", err);
     }
@@ -235,9 +307,9 @@ export default function ChatArea() {
   }, [friends]);
 
   useEffect(() => {
-    if (shouldScroll.current && bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: "smooth" });
-      // shouldScroll.current = false; // only scroll once per chat entry
+    if (!hasAutoScrolled && shouldScroll.current && bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: "auto" });
+      setHasAutoScrolled(true); // prevent future auto-scrolls
     }
   }, [messages]);
 
@@ -304,7 +376,7 @@ export default function ChatArea() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const maxSizeMB = 50; // base64-safe limit
-    const validFiles = files.filter(file => {
+    const validFiles = files.filter((file) => {
       const fileSizeMB = file.size / (1024 * 1024);
       if (fileSizeMB > maxSizeMB) {
         alert(`${file.name} is too large. Max allowed size is ${maxSizeMB}MB.`);
@@ -316,28 +388,38 @@ export default function ChatArea() {
     setPreviewVisible(true);
   };
 
+  const renderMediaPreviews = () => {
+    return mediaFiles.map((file, index) => {
+      const isImage = file.type.startsWith("image/");
+      const isAudio = file.type.startsWith("audio/");
 
-const renderMediaPreviews = () => {
-  return mediaFiles.map((file, index) => {
-    const isImage = file.type.startsWith("image/");
-    const url = URL.createObjectURL(file);
-    return (
-      <div key={index} className="relative">
-        {isImage ? (
-          <img src={url} className="w-20 h-20 object-cover rounded" />
-        ) : (
-          <video src={url} className="w-20 h-20 rounded" controls />
-        )}
-      </div>
-    );
-  });
-};
+      const url = URL.createObjectURL(file);
+      console.log("type", url);
+
+      return (
+        <div key={index} className="relative">
+          {isImage ? (
+            <img src={url} className="w-20 h-20 object-cover rounded" />
+          ) : isAudio ? (
+            <audio src={url} controls className="w-[25vw] h-20 rounded" />
+          ) : (
+            <video src={url} className="w-20 h-20 rounded" controls />
+          )}
+        </div>
+      );
+    });
+  };
 
   // console.log("selectedFriend", selectedFriend)
   // console.log("messages", messages);
   return (
     <div className="flex flex-col bg-transparent h-full p-2 pb-5 overflow-y-auto">
-      <div className="flex flex-row justify-center items-center gap-2 p-3">
+      <div
+        onClick={() => {
+          setShowEmoji(false);
+        }}
+        className="flex flex-row justify-center items-center gap-2 p-3"
+      >
         {selectedFriend && (
           <img
             src={selectedFriend.profilePic}
@@ -351,70 +433,167 @@ const renderMediaPreviews = () => {
             : "Select a friend to chat"}
         </h2>
       </div>
+      {!loadingMessages ? (
+      <div
+        ref={chatContainerRef}
+        className="h-[85%] bg-gray-950 p-4 rounded-lg shadow-inner overflow-y-auto space-y-2"
+        onScroll={() => {
+          if (chatContainerRef.current) {
+            const el = chatContainerRef.current;
+            const nearBottom =
+              el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+            if (!nearBottom) {
+              setHasAutoScrolled(true); // User scrolled up
+            }
+          }
+        }}
+      >
+        <div
+          onClick={() => {
+            setShowEmoji(false);
+          }}
+          className="h-full bg-gray-950 p-4 rounded-lg shadow-inner overflow-y-auto space-y-2"
+        >
+          {messages.length > 0 &&
+            messages.map((msg, idx) => {
+              const isSentByUser =
+                (typeof msg.sender === "string" && msg.sender === userId) ||
+                (typeof msg.sender === "object" && msg.sender._id === userId);
+              const isFromFriend =
+                (typeof msg.sender === "string" &&
+                  msg.sender === selectedFriend?.friendId) ||
+                (typeof msg.sender === "object" &&
+                  msg.sender._id === selectedFriend?.friendId);
+                  const isGroupChat = !!selectedGroup;
+              // const isFromFriend = senderId === selectedFriend?.friendId;
 
-      <div className="h-[70%] bg-gray-950 p-4 rounded-lg shadow-inner overflow-y-auto space-y-2">
-        {messages.length > 0 &&
-          messages.map((msg, idx) => {
-            const isSentByUser =
-              (typeof msg.sender === "string" && msg.sender === userId) ||
-              (typeof msg.sender === "object" && msg.sender._id === userId);
-            const isFromFriend =
-              (typeof msg.sender === "string" &&
-                msg.sender === selectedFriend?.friendId) ||
-              (typeof msg.sender === "object" &&
-                msg.sender._id === selectedFriend?.friendId);
-            // const isFromFriend = senderId === selectedFriend?.friendId;
+              // Only render messages sent by you or the selected friend
+              if (!isSentByUser && !isFromFriend && !isGroupChat) return null;
+              // console.log("msg", msg)
+              return (
+                <div
+                  key={msg?._id || idx}
+                  className={`p-3 pr-4 relative rounded-md max-w-[70%] w-fit break-words whitespace-pre-wrap text-black ${
+                    isSentByUser ? "bg-lime-400 ml-auto" : "bg-lime-100 mr-auto"
+                  }`}
+                >
+                  {msg.media && msg.media?.length > 0 && (
+                    <div
+                      className={`grid ${
+                        msg.media?.length > 1 ? "grid-cols-2" : "grid-cols-1"
+                      } gap-2`}
+                      onClick={(e) => {
+                        // Find the index of the clicked child
+                        const target = e.target as HTMLMediaElement;
+                        const children = Array.from(e.currentTarget.children);
+                        const index = children.findIndex(
+                          (child) => child === target.closest("video, img")
+                        );
+                        // console.log("index", index)
+                        if (index !== -1) {
+                          setModalMedia(msg.media || []);
+                          setCurrentMediaIndex(index);
+                          setShowMediaModal(true);
+                        }
+                      }}
+                    >
+                      {(msg.media || []).slice(0, 3).map((url, index) => {
+                        const openModal = () => {
+                          setModalMedia(msg.media || []);
+                          setCurrentMediaIndex(index);
+                          setShowMediaModal(true);
+                        };
 
-            // Only render messages sent by you or the selected friend
-            if (!isSentByUser && !isFromFriend) return null;
-            // console.log("msg", msg)
-            return (
-              <div
-                key={msg?._id || idx}
-                className={`p-2 relative rounded-md max-w-[70%] break-words whitespace-pre-wrap text-black ${
-                  isSentByUser ? "bg-lime-400 ml-auto" : "bg-lime-100 mr-auto"
-                }`}
-              >
-                {msg.content}
-                {msg.media && msg.media?.length > 0 && (
-  <div className="grid grid-cols-3 gap-2">
-    {msg.media.map((url, index) =>
-      url.endsWith(".mp4") ? (
-        <video key={index} src={url} controls className="w-24 h-24" />
-      ) : (
-        <img key={index} src={url} className="w-24 h-24 rounded" />
-      )
-    )}
-  </div>
- )}
-                {isSentByUser && msg.isRead && (
-                  <span className="text-sm absolute right-0 bottom-0 text-gray-400 ml-2">
-                    👁️
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        {typingFriend && (
-          <div className="text-sm italic text-white">Typing...</div>
-        )}
-        <div ref={bottomRef} />
+                        return url.endsWith(".mp4") ? (
+                          <video
+                            key={index}
+                            src={url}
+                            onClick={openModal}
+                            className="w-24 h-24 cursor-pointer"
+                            // controls
+                          />
+                        ) : url.endsWith(".webm") ? (
+                          <audio
+                            key={index}
+                            src={url}
+                            className="w-[15vw]"
+                            controls
+                          />
+                        ) : (
+                          <img
+                            key={index}
+                            src={url}
+                            onClick={openModal}
+                            className="w-24 h-24 rounded cursor-pointer"
+                          />
+                        );
+                      })}
+
+                      {(msg.media?.length || 0) > 3 && (
+                        <div
+                          onClick={() => {
+                            setModalMedia(msg.media || []);
+                            setCurrentMediaIndex(3);
+                            setShowMediaModal(true);
+                          }}
+                          className="w-24 h-24 flex items-center justify-center bg-black bg-opacity-60 text-white rounded cursor-pointer"
+                        >
+                          +{(msg.media?.length || 0) - 3}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {msg.content}
+                  {isSentByUser && msg.isRead && !selectedGroup && (
+                    <span className="text-sm absolute right-0 bottom-0 text-gray-400 ml-2">
+                      👁️
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          {typingFriend && (
+            <div className="text-sm italic text-white">Typing...</div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+      </div>):(
+        <div className="h-[85%] bg-gray-950 p-4 rounded-lg flex items-center justify-center text-white text-sm">
+        Loading chat...
       </div>
-      {selectedFriend && previewVisible && mediaFiles.length > 0 && (
-  <div className="flex flex-wrap gap-2 mb-2">
-    {renderMediaPreviews()}
-    <span className="text-white text-sm ml-2">
-      {mediaFiles.length} selected
-    </span>
-  </div>
-)}
-      {selectedFriend && (
-        
+      )}
+      {(selectedFriend || selectedGroup) && previewVisible && mediaFiles.length > 0 && (
+        <div className=" relative flex flex-wrap gap-2 mb-2">
+          {renderMediaPreviews()}
+          <span className="text-white absolute bottom-1 right-0 text-sm ml-2">
+            {mediaFiles.length} selected
+          </span>
+
+          <div
+            className="absolute top-1 right-0 cursor-pointer"
+            onClick={() => {
+              setPreviewVisible(false);
+              setMediaFiles([]);
+            }}
+          >
+            <X className="hover:text-red-500" />
+          </div>
+        </div>
+      )}
+      {showEmoji && (
+        <div className="flex relative left-0">
+          <EmojiPicker
+            onEmojiClick={(emoji) => setMessageInput((prev) => prev + emoji)}
+          />
+        </div>
+      )}
+
+      {(selectedFriend || selectedGroup) && (
         <div className="flex flex-row items-center mt-4 gap-1">
           <input
             type="file"
-             multiple
-  accept="image/*,video/*"
+            multiple
+            accept="image/*,video/*"
             onChange={handleFileSelect}
             className="hidden"
             id="upload"
@@ -425,6 +604,22 @@ const renderMediaPreviews = () => {
           >
             📷
           </label>
+
+          {/* Voice Recorder Button */}
+          <VoiceRecorder
+            onSend={(audioFile) => {
+              setMediaFiles((prev) => [...prev, audioFile]); // Add to mediaFiles
+              setPreviewVisible(true); // Show in preview
+            }}
+          />
+
+          <div
+            className="cursor-pointer px-4 py-2 text-white bg-gray-800 rounded"
+            onClick={() => setShowEmoji(!showEmoji)}
+          >
+            😀
+          </div>
+
           <textarea
             value={messageInput}
             onChange={handleInputChange}
@@ -459,6 +654,12 @@ const renderMediaPreviews = () => {
           </button>
         </div>
       )}
+      <MediaViewerModal
+        isOpen={showMediaModal}
+        onClose={() => setShowMediaModal(false)}
+        media={modalMedia}
+        initialIndex={currentMediaIndex}
+      />
     </div>
   );
 }

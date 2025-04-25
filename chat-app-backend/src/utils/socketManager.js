@@ -6,6 +6,8 @@ const User = require("../models/User");
 const Message = require("../models/Message");
 const Chat = require("../models/Chat");
 const { sendMessages } = require("../controllers/messageController");
+const { SendGroupMessage } = require("../controllers/groupController");
+const Group = require("../models/Group");
 const users = new Map(); // userId -> socket.id
 const groups = new Map(); // groupId -> { members, admins, chatName }
 
@@ -15,8 +17,8 @@ const initializeSocket = (io) => {
 
     socket.on("join", (userId) => {
       socket.join(userId);
-      console.log("userId", userId);
-      console.log("Id", socket.id);
+      // console.log("userId", userId);
+      // console.log("Id", socket.id);
       users.set(userId, socket.id);
       console.log(`✅ User ${userId} joined with socket ID: ${socket.id}`);
     });
@@ -176,32 +178,7 @@ const initializeSocket = (io) => {
             content,
             isRead: false,
           });
-          // const savedMessage = await newMessage.save();
-
-          // await Chat.findByIdAndUpdate(chatId, {
-          //   lastMessage: savedMessage._id,
-          // });
-
-          // const populatedMessage = await savedMessage.populate(
-          //   "sender",
-          //   "username profilePic"
-          // );
-
-          // console.log("populateMessage". populatedMessage)
-
-          // io.to(chatId.toString()).emit("newMessage", {
-          //   chatId,
-          //   senderId,
-          //   content,
-          //   receiverId,
-          // });
-          // io.to(receiverId.toString()).emit("newMessage", {
-          //   chatId,
-          //   senderId,
-          //   content,
-          //   receiverId,
-          // });
-
+          
           // Update unread count for receiver in real-time
           const unreadCount = await Message.countDocuments({
             sender: senderId,
@@ -293,38 +270,91 @@ const initializeSocket = (io) => {
       }
     });
 
-    socket.on("createGroup", ({ groupId, adminId, members, chatName }) => {
+
+    //Join Group room
+
+    socket.on("joinGroup", (groupId)=>{
+      socket.join(groupId);
+      console.log(`Joined group ${groupId}`)
+    })
+
+    //create a new group
+    socket.on("createGroup", ({ groupId, adminId, members, groupName, superAdmin }) => {
       groups.set(groupId, {
         members: new Set(members),
-        admins: new Set([adminId]),
-        chatName,
+        admins: new Set(adminId),
+        groupName:groupName,
+        superAdmin: superAdmin,
       });
-      console.log(`👥 Group ${chatName} created by ${adminId}`);
+
+      io.emit("newGroupCreated", {
+        _id: groupId,
+        groupName,
+        groupProfilePic: "https://some-url.com/pic.jpg", // optional if you save it
+        groupMember: members,
+        admins: adminId,
+        superAdmin,
+      });
+      console.log("groups", groups)
+      console.log(`👥 Group ${groupName} created by ${adminId}`);
     });
 
-    socket.on("sendGroupMessage", ({ groupId, senderId, message }) => {
-      const group = groups.get(groupId);
-      if (group && group.members.has(senderId)) {
-        group.members.forEach((memberId) => {
-          const memberSocket = users.get(memberId);
-          if (memberSocket) {
-            io.to(memberSocket).emit("receiverGroupMessage", {
-              groupId,
-              senderId,
-              message,
-            });
-          }
+    // socket.on("sendGroupMessage", async ({ groupId, senderId, content, media }) => {
+    //   const group = groups.get(groupId);
+    //   if (group && group.members.has(senderId)) {
+    //     const saveMessage = await SendGroupMessage({
+    //       groupId,
+    //       senderId,
+    //       content,
+    //       media,
+    //     })
+    //     // group.members.forEach((memberId) => {
+    //     //   const memberSocket = users.get(memberId);
+    //     //   if (memberSocket) {
+    //     //     io.to(memberSocket).emit("receiverGroupMessage", saveMessage);
+    //     //   }
+    //     // });
+    //     socket.to(groupId).emit("receiverGroupMessage", saveMessage); // others
+    // socket.emit("receiverGroupMessage", saveMessage); // sender
+    //     console.log(`📢 Group message sent to group ${groupId}`);
+    //   } else {
+    //     console.log(`❌ Sender not part of group ${groupId}`);
+    //   }
+    // });
+    socket.on("sendGroupMessage", async ({ groupId, senderId, content, media }) => {
+      let group = groups.get(groupId);
+    
+      // Extra check if sender is not found
+      if (!group || !group.members.has(senderId)) {
+        const dbGroup = await Group.findById(groupId);
+        if (!dbGroup || !dbGroup.groupMember.map(String).includes(senderId)) {
+          return console.log(`❌ Sender not part of group ${groupId}`);
+        }
+    
+        // Sync memory state
+        groups.set(groupId, {
+          members: new Set(dbGroup.groupMember.map(String)),
+          admins: new Set(dbGroup.admins.map(String)),
+          groupName: dbGroup.groupName,
+          superAdmin: String(dbGroup.superAdmin),
         });
-        console.log(`📢 Group message sent to group ${groupId}`);
-      } else {
-        console.log(`❌ Sender not part of group ${groupId}`);
+    
+        group = groups.get(groupId); // reassign
       }
+     console.log("groupId", groupId)
+      const saveMessage = await SendGroupMessage({ groupId, senderId, content, media });
+    
+      socket.to(groupId).emit("receiverGroupMessage", saveMessage);
+      socket.emit("receiverGroupMessage", saveMessage);
+      console.log(`📢 Group message sent to group ${groupId}`);
     });
+    
 
     socket.on("addToGroup", ({ groupId, adminId, newMemberId }) => {
       const group = groups.get(groupId);
       if (group && group.admins.has(adminId)) {
         group.members.add(newMemberId);
+
         console.log(`✅ Member ${newMemberId} added to group ${groupId}`);
       } else {
         console.log(`❌ Unauthorized action by ${adminId}`);
@@ -333,7 +363,7 @@ const initializeSocket = (io) => {
 
     socket.on("removeFromGroup", ({ groupId, adminId, memberId }) => {
       const group = groups.get(groupId);
-      if (group && group.admins.has(adminId)) {
+      if (group && group.superAdmin ===adminId) {
         group.members.delete(memberId);
         console.log(`🚪 Member ${memberId} removed from group ${groupId}`);
       } else {
@@ -343,7 +373,7 @@ const initializeSocket = (io) => {
 
     socket.on("grantAdmin", ({ groupId, adminId, newAdminId }) => {
       const group = groups.get(groupId);
-      if (group && group.admins.has(adminId)) {
+      if (group && group.superAdmin === adminId) {
         group.admins.add(newAdminId);
         console.log(`👑 Admin privileges granted to ${newAdminId}`);
       } else {

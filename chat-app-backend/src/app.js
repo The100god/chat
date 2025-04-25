@@ -10,6 +10,7 @@ const friendRoutes = require("./routes/friendRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const userRoutes = require("./routes/userRoute");
+const groupRoutes = require("./routes/groupRoutes");
 const { initializeSocket } = require("./utils/socketManager");
 
 dotenv.config();
@@ -49,6 +50,7 @@ app.use("/api/friends", friendRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/message", messageRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/groups", groupRoutes);
 
 //connect MongoDb
 

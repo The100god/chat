@@ -15,7 +15,8 @@ const messageSchema = new mongoose.Schema({
     },
     content:{
         type:String,
-        require:true,
+        require:false,
+        default:"let's Talk!",
     },
     media: {
         type: [String], // array of base64 strings
