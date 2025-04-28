@@ -124,10 +124,11 @@ const Header: React.FC = () => {
               setFindFriend(false);
               setFriendsRequests(false);
               setAllFriends(false);
+              setGroupChatOpen(false)
               setFindFriendWithChat(true)
               router.push("/")
             }}>
-            <div className="text-2xl font-bold text-lime-300">Gappo</div>
+            <div className="text-2xl font-bold cursor-pointer text-lime-300">Gappo</div>
           </div>
         </div>
 
@@ -136,9 +137,10 @@ const Header: React.FC = () => {
           {/* Home */}
           <div
             onClick={() => {
-              setFindFriend(false);
+              setFindFriend(false)
               setFriendsRequests(false);
               setAllFriends(false);
+              setGroupChatOpen(false)
               setFindFriendWithChat(true)
               router.push("/")
             }}

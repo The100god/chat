@@ -3,7 +3,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSocket } from "../../hooks/useSocket";
 import { useAtom } from "jotai";
-import { friendsAtom, selectedFriendAtom, selectedGroupAtom } from "../../states/States";
+import {
+  friendsAtom,
+  selectedFriendAtom,
+  selectedGroupAtom,
+} from "../../states/States";
 import MediaViewerModal from "../../components/MediaViewerModal";
 import EmojiPicker from "../../components/EmojiPicker";
 import VoiceRecorder from "../../components/VoiceRecorder";
@@ -12,6 +16,7 @@ import { X } from "lucide-react";
 interface Message {
   _id?: string;
   chatId?: string;
+  groupId?: string;
   sender?:
     | {
         _id: string;
@@ -24,6 +29,11 @@ interface Message {
   media?: string[]; // not [string]
   createdAt?: string;
   isRead?: boolean;
+  seenBy?: {
+    _id: string;
+    username: string;
+    profilePic: string;
+  }[];
 }
 
 export interface Friend {
@@ -62,11 +72,9 @@ export default function ChatArea() {
   //group
   const [selectedGroup] = useAtom(selectedGroupAtom);
 
-
-
   // Join chat and fetch messages
   useEffect(() => {
-    console.log("selectedGroup", selectedGroup)
+    console.log("selectedGroup", selectedGroup);
     if ((!selectedFriend && !selectedGroup) || !userId) return;
 
     setLoadingMessages(true);
@@ -74,59 +82,65 @@ export default function ChatArea() {
       shouldScroll.current = true; // Only scroll on opening chat
       setHasAutoScrolled(false); // allow auto-scroll for new friend
       try {
-        if(selectedFriend){
-
+        if (selectedFriend) {
           const res = await fetch(`http://localhost:5000/api/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify([userId, selectedFriend?.friendId]),
           });
-        
-        const data = await res.json();
-        setChatId(data._id);
-        // console.log("data", data._id);
 
-        if (socket && chatId) {
-          console.log("Joining chat room:", chatId);
-          socket.emit("join", chatId);
+          const data = await res.json();
+          setChatId(data._id);
+          // console.log("data", data._id);
+
+          if (socket && chatId) {
+            console.log("Joining chat room:", chatId);
+            socket.emit("join", chatId);
+          }
+
+          const messagesRes = await fetch(
+            `http://localhost:5000/api/message/${data._id}`
+          );
+          const messagesData = await messagesRes.json();
+          if (messagesData.length > 0) {
+            setMessages(messagesData);
+            setLoadingMessages(false);
+          } else {
+            setMessages([]); // or handle the error gracefully
+            console.error("Fetched messages is not an array", messagesData);
+          }
+        } else if (selectedGroup) {
+          const res = await fetch(
+            `http://localhost:5000/api/groups/group-message/${selectedGroup._id}`
+          );
+          const messagesData = await res.json();
+          setChatId(selectedGroup._id);
+
+          if (socket && selectedGroup) {
+            socket.emit("groupMessagesRead", {
+              groupId: selectedGroup._id,
+              readerId: userId,
+            });
+          }
+
+          if (messagesData.length > 0) {
+            setMessages(messagesData);
+            setLoadingMessages(false);
+          } else {
+            setMessages([]); // or handle the error gracefully
+            console.error(
+              "Fetched group messages is not an array",
+              messagesData
+            );
+          }
         }
-
-        const messagesRes = await fetch(
-          `http://localhost:5000/api/message/${data._id}`
-        );
-        const messagesData = await messagesRes.json();
-        if (messagesData.length > 0) {
-          setMessages(messagesData);
-          setLoadingMessages(false);
-          
-        } else {
-          setMessages([]); // or handle the error gracefully
-          console.error("Fetched messages is not an array", messagesData);
-        }
-      }
-      else if(selectedGroup){
-        const res = await fetch(`http://localhost:5000/api/groups/group-message/${selectedGroup._id}`)
-        const messagesData = await res.json();
-        setChatId(selectedGroup._id)
-
-        
-
-        if (messagesData.length > 0){
-          setMessages(messagesData);
-          setLoadingMessages(false);
-        } else {
-          setMessages([]); // or handle the error gracefully
-          console.error("Fetched group messages is not an array", messagesData);
-        }      
-
-      }
       } catch (err) {
         console.error("Error fetching chat or messages:", err);
       }
     };
 
     fetchChat();
-  }, [selectedFriend,selectedGroup, chatId, socket]);
+  }, [selectedFriend, selectedGroup, chatId, socket]);
 
   useEffect(() => {
     if (socket && selectedGroup?._id) {
@@ -134,6 +148,7 @@ export default function ChatArea() {
       console.log("🔗 Joined group socket room:", selectedGroup._id);
     }
   }, [selectedGroup, socket]);
+
   // Receive new messages via Socket.IO
   useEffect(() => {
     if (!socket || !chatId) return;
@@ -152,28 +167,43 @@ export default function ChatArea() {
       // }
     };
 
-    socket.on("newMessage", handleNewMessage)
+    socket.on("newMessage", handleNewMessage);
 
     return () => {
-      socket.off("newMessage", handleNewMessage)
+      socket.off("newMessage", handleNewMessage);
     };
   }, [socket, chatId, selectedFriend]);
 
   useEffect(() => {
     if (!socket || !selectedGroup) return;
-  
+
     const handleGroupMessage = (message: Message) => {
-      if (message.chatId === selectedGroup._id) {
-        setMessages((prev) => [...prev, message]);
+      console.log("handleGroupMessage", message);
+      if (message.groupId === selectedGroup._id) {
+        setMessages((prev) => {
+          const alreadyExists = prev.some((m) => m._id === message._id);
+          if (!alreadyExists) {
+            return [...prev, message];
+          }
+          return prev;
+        });
       }
     };
-  
-    socket.on("receiverGroupMessage", handleGroupMessage);
-  
+
+    const handleGroupSeenUpdate = ({groupId:seenGroupId, messages:updatedMessges,}:{groupId:string, messages:Message[]})=>{
+      if(selectedGroup && seenGroupId === selectedGroup._id){
+        setMessages(updatedMessges);
+      }
+    }
+
+    socket.on("newGroupMessage", handleGroupMessage);
+    socket.on("groupSeenUpdate", handleGroupSeenUpdate);
+
     return () => {
-      socket.off("receiverGroupMessage", handleGroupMessage);
+      socket.off("newGroupMessage", handleGroupMessage);
+      socket.off("groupSeenUpdate", handleGroupSeenUpdate);
     };
-  }, [socket, selectedGroup]);
+  }, [socket, chatId, selectedGroup]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessageInput(e.target.value);
@@ -230,41 +260,56 @@ export default function ChatArea() {
         media: mediaBase64,
         isRead: false,
       };
-      setMessages((prev) => [
-        ...prev,
-        {
-          ...newMessage,
-          sender: userId,
-          _id: `local-${Date.now()}`, // temporary until real _id from backend
-        },
-      ]);
-      console.log("selectedGroup._id", selectedGroup?._id)
-      const endpoint = selectedGroup ? "http://localhost:5000/api/groups/send-group-message" : "http://localhost:5000/api/message";
+      // setMessages((prev) => [
+      //   ...prev,
+      //   {
+      //     ...newMessage,
+      //     sender: userId,
+      //     _id: `local-${Date.now()}`, // temporary until real _id from backend
+      //   },
+      // ]);
+      console.log("selectedGroup._id", selectedGroup?._id);
+      const endpoint = selectedGroup
+        ? "http://localhost:5000/api/groups/send-group-message"
+        : "http://localhost:5000/api/message";
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify( selectedGroup ? {
-          groupId:selectedGroup._id, senderId:userId, content:messageInput.trim(), media:mediaBase64
-        }:newMessage),
+        body: JSON.stringify(
+          selectedGroup
+            ? {
+                groupId: selectedGroup._id,
+                senderId: userId,
+                content: messageInput.trim(),
+                media: mediaBase64,
+              }
+            : newMessage
+        ),
       });
 
       const savedMessage = await res.json();
 
       console.log("saveMessage", savedMessage);
-      
+
       setLoadingMessages(false);
-      socket.emit(selectedGroup?"sendGroupMessage":"sendMessage", selectedGroup?{
-        groupId:chatId,
-        senderId:userId, 
-        content:savedMessage.content, 
-        media:savedMessage.media,
-      }:{
-        chatId: savedMessage.chatId,
-        senderId: savedMessage.sender._id,
-        receiverId: savedMessage.receiver,
-        media: savedMessage.media,
-        content: savedMessage.content,
-      });
+      console.log("socketSelectedGroup", selectedGroup);
+      socket.emit(
+        selectedGroup ? "sendGroupMessage" : "sendMessage",
+        selectedGroup
+          ? {
+              groupId: selectedGroup._id,
+              senderId: userId,
+              content: savedMessage.content,
+              media: savedMessage.media,
+            }
+          : {
+              chatId: savedMessage.chatId,
+              senderId: savedMessage.sender._id,
+              receiverId: savedMessage.receiver,
+              media: savedMessage.media,
+              content: savedMessage.content,
+            }
+      );
 
       // Update local message state
       setMediaFiles([]);
@@ -305,6 +350,28 @@ export default function ChatArea() {
       socket.off("messagesReadAck", handleMessagesReadAck);
     };
   }, [friends]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleSeenUpdate = ({
+      groupId,
+      messages: updatedMessages,
+    }: {
+      groupId: string;
+      messages: Message[];
+    }) => {
+      if (selectedGroup && groupId === selectedGroup._id) {
+        setMessages(updatedMessages);
+      }
+    };
+
+    socket.on("groupSeenUpdate", handleSeenUpdate);
+
+    return () => {
+      socket.off("groupSeenUpdate", handleSeenUpdate);
+    };
+  }, [socket, selectedGroup]);
 
   useEffect(() => {
     if (!hasAutoScrolled && shouldScroll.current && bottomRef.current) {
@@ -434,152 +501,178 @@ export default function ChatArea() {
         </h2>
       </div>
       {!loadingMessages ? (
-      <div
-        ref={chatContainerRef}
-        className="h-[85%] bg-gray-950 p-4 rounded-lg shadow-inner overflow-y-auto space-y-2"
-        onScroll={() => {
-          if (chatContainerRef.current) {
-            const el = chatContainerRef.current;
-            const nearBottom =
-              el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-            if (!nearBottom) {
-              setHasAutoScrolled(true); // User scrolled up
-            }
-          }
-        }}
-      >
         <div
-          onClick={() => {
-            setShowEmoji(false);
+          ref={chatContainerRef}
+          className="h-[85%] bg-gray-950 p-4 rounded-lg shadow-inner overflow-y-auto space-y-2"
+          onScroll={() => {
+            if (chatContainerRef.current) {
+              const el = chatContainerRef.current;
+              const nearBottom =
+                el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+              if (!nearBottom) {
+                setHasAutoScrolled(true); // User scrolled up
+              }
+            }
           }}
-          className="h-full bg-gray-950 p-4 rounded-lg shadow-inner overflow-y-auto space-y-2"
         >
-          {messages.length > 0 &&
-            messages.map((msg, idx) => {
-              const isSentByUser =
-                (typeof msg.sender === "string" && msg.sender === userId) ||
-                (typeof msg.sender === "object" && msg.sender._id === userId);
-              const isFromFriend =
-                (typeof msg.sender === "string" &&
-                  msg.sender === selectedFriend?.friendId) ||
-                (typeof msg.sender === "object" &&
-                  msg.sender._id === selectedFriend?.friendId);
-                  const isGroupChat = !!selectedGroup;
-              // const isFromFriend = senderId === selectedFriend?.friendId;
-
-              // Only render messages sent by you or the selected friend
-              if (!isSentByUser && !isFromFriend && !isGroupChat) return null;
-              // console.log("msg", msg)
-              return (
-                <div
-                  key={msg?._id || idx}
-                  className={`p-3 pr-4 relative rounded-md max-w-[70%] w-fit break-words whitespace-pre-wrap text-black ${
-                    isSentByUser ? "bg-lime-400 ml-auto" : "bg-lime-100 mr-auto"
-                  }`}
-                >
-                  {msg.media && msg.media?.length > 0 && (
-                    <div
-                      className={`grid ${
-                        msg.media?.length > 1 ? "grid-cols-2" : "grid-cols-1"
-                      } gap-2`}
-                      onClick={(e) => {
-                        // Find the index of the clicked child
-                        const target = e.target as HTMLMediaElement;
-                        const children = Array.from(e.currentTarget.children);
-                        const index = children.findIndex(
-                          (child) => child === target.closest("video, img")
-                        );
-                        // console.log("index", index)
-                        if (index !== -1) {
-                          setModalMedia(msg.media || []);
-                          setCurrentMediaIndex(index);
-                          setShowMediaModal(true);
-                        }
-                      }}
-                    >
-                      {(msg.media || []).slice(0, 3).map((url, index) => {
-                        const openModal = () => {
-                          setModalMedia(msg.media || []);
-                          setCurrentMediaIndex(index);
-                          setShowMediaModal(true);
-                        };
-
-                        return url.endsWith(".mp4") ? (
-                          <video
-                            key={index}
-                            src={url}
-                            onClick={openModal}
-                            className="w-24 h-24 cursor-pointer"
-                            // controls
-                          />
-                        ) : url.endsWith(".webm") ? (
-                          <audio
-                            key={index}
-                            src={url}
-                            className="w-[15vw]"
-                            controls
-                          />
-                        ) : (
-                          <img
-                            key={index}
-                            src={url}
-                            onClick={openModal}
-                            className="w-24 h-24 rounded cursor-pointer"
-                          />
-                        );
-                      })}
-
-                      {(msg.media?.length || 0) > 3 && (
-                        <div
-                          onClick={() => {
-                            setModalMedia(msg.media || []);
-                            setCurrentMediaIndex(3);
-                            setShowMediaModal(true);
-                          }}
-                          className="w-24 h-24 flex items-center justify-center bg-black bg-opacity-60 text-white rounded cursor-pointer"
-                        >
-                          +{(msg.media?.length || 0) - 3}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {msg.content}
-                  {isSentByUser && msg.isRead && !selectedGroup && (
-                    <span className="text-sm absolute right-0 bottom-0 text-gray-400 ml-2">
-                      👁️
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          {typingFriend && (
-            <div className="text-sm italic text-white">Typing...</div>
-          )}
-          <div ref={bottomRef} />
-        </div>
-      </div>):(
-        <div className="h-[85%] bg-gray-950 p-4 rounded-lg flex items-center justify-center text-white text-sm">
-        Loading chat...
-      </div>
-      )}
-      {(selectedFriend || selectedGroup) && previewVisible && mediaFiles.length > 0 && (
-        <div className=" relative flex flex-wrap gap-2 mb-2">
-          {renderMediaPreviews()}
-          <span className="text-white absolute bottom-1 right-0 text-sm ml-2">
-            {mediaFiles.length} selected
-          </span>
-
           <div
-            className="absolute top-1 right-0 cursor-pointer"
             onClick={() => {
-              setPreviewVisible(false);
-              setMediaFiles([]);
+              setShowEmoji(false);
             }}
+            className="h-full bg-gray-950 p-4 rounded-lg shadow-inner overflow-y-auto space-y-2"
           >
-            <X className="hover:text-red-500" />
+            {messages.length > 0 &&
+              messages.map((msg, idx) => {
+                const isSentByUser =
+                  (typeof msg.sender === "string" && msg.sender === userId) ||
+                  (typeof msg.sender === "object" && msg.sender._id === userId);
+                const isFromFriend =
+                  (typeof msg.sender === "string" &&
+                    msg.sender === selectedFriend?.friendId) ||
+                  (typeof msg.sender === "object" &&
+                    msg.sender._id === selectedFriend?.friendId);
+                const isGroupChat = !!selectedGroup;
+                // const isFromFriend = senderId === selectedFriend?.friendId;
+
+                // Only render messages sent by you or the selected friend
+                if (!isSentByUser && !isFromFriend && !isGroupChat) return null;
+                // console.log("msg", msg)
+                return (
+                  <div
+                    key={msg?._id || idx}
+                    className={`p-3 pr-4 relative rounded-md max-w-[70%] w-fit break-words whitespace-pre-wrap text-black ${
+                      isSentByUser
+                        ? "bg-lime-400 ml-auto"
+                        : "bg-lime-100 mr-auto"
+                    }`}
+                  >
+                    {msg.media && msg.media?.length > 0 && (
+                      <div
+                        className={`grid ${
+                          msg.media?.length > 1 ? "grid-cols-2" : "grid-cols-1"
+                        } gap-2`}
+                        onClick={(e) => {
+                          // Find the index of the clicked child
+                          const target = e.target as HTMLMediaElement;
+                          const children = Array.from(e.currentTarget.children);
+                          const index = children.findIndex(
+                            (child) => child === target.closest("video, img")
+                          );
+                          // console.log("index", index)
+                          if (index !== -1) {
+                            setModalMedia(msg.media || []);
+                            setCurrentMediaIndex(index);
+                            setShowMediaModal(true);
+                          }
+                        }}
+                      >
+                        {(msg.media || []).slice(0, 3).map((url, index) => {
+                          const openModal = () => {
+                            setModalMedia(msg.media || []);
+                            setCurrentMediaIndex(index);
+                            setShowMediaModal(true);
+                          };
+
+                          return url.endsWith(".mp4") ? (
+                            <video
+                              key={index}
+                              src={url}
+                              onClick={openModal}
+                              className="w-24 h-24 cursor-pointer"
+                              // controls
+                            />
+                          ) : url.endsWith(".webm") ? (
+                            <audio
+                              key={index}
+                              src={url}
+                              className="w-[15vw]"
+                              controls
+                            />
+                          ) : (
+                            <img
+                              key={index}
+                              src={url}
+                              onClick={openModal}
+                              className="w-24 h-24 rounded cursor-pointer"
+                            />
+                          );
+                        })}
+
+                        {(msg.media?.length || 0) > 3 && (
+                          <div
+                            onClick={() => {
+                              setModalMedia(msg.media || []);
+                              setCurrentMediaIndex(3);
+                              setShowMediaModal(true);
+                            }}
+                            className="w-24 h-24 flex items-center justify-center bg-black bg-opacity-60 text-white rounded cursor-pointer"
+                          >
+                            +{(msg.media?.length || 0) - 3}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {msg.content}
+                    {isSentByUser && msg.isRead && selectedFriend && (
+                      <span className="text-sm absolute right-0 bottom-0 text-gray-400 ml-2">
+                        👀
+                      </span>
+                    )}
+
+                    {selectedGroup && msg.seenBy && msg.seenBy.length > 0 && (
+                      <div className="flex items-center space-x-1 mt-1">
+                        {msg.seenBy
+                          .filter((u) => u._id !== userId)
+                          .slice(0, 3)
+                          .map((user, i) => (
+                            <img
+                              key={i}
+                              src={user.profilePic}
+                              title={user.username}
+                              className="w-4 h-4 rounded-full"
+                            />
+                          ))}
+                        {msg.seenBy.length > 4 && (
+                          <span className="text-xs text-gray-400">
+                            +{msg.seenBy.length - 4}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            {typingFriend && (
+              <div className="text-sm italic text-white">Typing...</div>
+            )}
+            <div ref={bottomRef} />
           </div>
         </div>
+      ) : (
+        <div className="h-[85%] bg-gray-950 p-4 rounded-lg flex items-center justify-center text-white text-sm">
+          Loading chat...
+        </div>
       )}
+      {(selectedFriend || selectedGroup) &&
+        previewVisible &&
+        mediaFiles.length > 0 && (
+          <div className=" relative flex flex-wrap gap-2 mb-2">
+            {renderMediaPreviews()}
+            <span className="text-white absolute bottom-1 right-0 text-sm ml-2">
+              {mediaFiles.length} selected
+            </span>
+
+            <div
+              className="absolute top-1 right-0 cursor-pointer"
+              onClick={() => {
+                setPreviewVisible(false);
+                setMediaFiles([]);
+              }}
+            >
+              <X className="hover:text-red-500" />
+            </div>
+          </div>
+        )}
       {showEmoji && (
         <div className="flex relative left-0">
           <EmojiPicker

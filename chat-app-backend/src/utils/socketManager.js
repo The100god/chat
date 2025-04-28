@@ -5,9 +5,10 @@ const {
 const User = require("../models/User");
 const Message = require("../models/Message");
 const Chat = require("../models/Chat");
-const { sendMessages } = require("../controllers/messageController");
-const { SendGroupMessage } = require("../controllers/groupController");
+// const { sendMessages } = require("../controllers/messageController");
+const { SendGroupMessageToDb } = require("../controllers/groupController");
 const Group = require("../models/Group");
+const GroupMessage = require("../models/GroupMessage");
 const users = new Map(); // userId -> socket.id
 const groups = new Map(); // groupId -> { members, admins, chatName }
 
@@ -178,7 +179,7 @@ const initializeSocket = (io) => {
             content,
             isRead: false,
           });
-          
+
           // Update unread count for receiver in real-time
           const unreadCount = await Message.countDocuments({
             sender: senderId,
@@ -270,34 +271,36 @@ const initializeSocket = (io) => {
       }
     });
 
-
     //Join Group room
 
-    socket.on("joinGroup", (groupId)=>{
+    socket.on("joinGroup", (groupId) => {
       socket.join(groupId);
-      console.log(`Joined group ${groupId}`)
-    })
+      console.log(`Joined group ${groupId}`);
+    });
 
     //create a new group
-    socket.on("createGroup", ({ groupId, adminId, members, groupName, superAdmin }) => {
-      groups.set(groupId, {
-        members: new Set(members),
-        admins: new Set(adminId),
-        groupName:groupName,
-        superAdmin: superAdmin,
-      });
+    socket.on(
+      "createGroup",
+      ({ groupId, adminId, members, groupName, superAdmin }) => {
+        groups.set(groupId, {
+          members: new Set(members),
+          admins: new Set(adminId),
+          groupName: groupName,
+          superAdmin: superAdmin,
+        });
 
-      io.emit("newGroupCreated", {
-        _id: groupId,
-        groupName,
-        groupProfilePic: "https://some-url.com/pic.jpg", // optional if you save it
-        groupMember: members,
-        admins: adminId,
-        superAdmin,
-      });
-      console.log("groups", groups)
-      console.log(`👥 Group ${groupName} created by ${adminId}`);
-    });
+        // io.emit("newGroupCreated", {
+        //   _id: groupId,
+        //   groupName,
+        //   groupProfilePic: "https://some-url.com/pic.jpg", // optional if you save it
+        //   groupMember: members,
+        //   admins: adminId,
+        //   superAdmin,
+        // });
+        console.log("groups", groups);
+        console.log(`👥 Group ${groupName} created by ${adminId}`);
+      }
+    );
 
     // socket.on("sendGroupMessage", async ({ groupId, senderId, content, media }) => {
     //   const group = groups.get(groupId);
@@ -321,34 +324,65 @@ const initializeSocket = (io) => {
     //     console.log(`❌ Sender not part of group ${groupId}`);
     //   }
     // });
-    socket.on("sendGroupMessage", async ({ groupId, senderId, content, media }) => {
-      let group = groups.get(groupId);
-    
-      // Extra check if sender is not found
-      if (!group || !group.members.has(senderId)) {
-        const dbGroup = await Group.findById(groupId);
-        if (!dbGroup || !dbGroup.groupMember.map(String).includes(senderId)) {
-          return console.log(`❌ Sender not part of group ${groupId}`);
+    socket.on(
+      "sendGroupMessage",
+      async ({ groupId, senderId, content, media }) => {
+        let group = groups.get(groupId);
+
+        // Extra check if sender is not found
+        if (!group || !group.members.has(senderId)) {
+          const dbGroup = await Group.findById(groupId);
+          if (!dbGroup || !dbGroup.groupMember.map(String).includes(senderId)) {
+            return console.log(`❌ Sender not part of group ${groupId}`);
+          }
+
+          // Sync memory state
+          groups.set(groupId, {
+            members: new Set(dbGroup.groupMember.map(String)),
+            admins: new Set(dbGroup.admins.map(String)),
+            groupName: dbGroup.groupName,
+            superAdmin: String(dbGroup.superAdmin),
+          });
+
+          group = groups.get(groupId); // reassign
         }
-    
-        // Sync memory state
-        groups.set(groupId, {
-          members: new Set(dbGroup.groupMember.map(String)),
-          admins: new Set(dbGroup.admins.map(String)),
-          groupName: dbGroup.groupName,
-          superAdmin: String(dbGroup.superAdmin),
-        });
-    
-        group = groups.get(groupId); // reassign
+        console.log("groupId", groupId);
+
+        // const saveMessage = await SendGroupMessageToDb({
+        //   groupId:groupId,
+        //   senderId:senderId,
+        //   content:content,
+        //   media:media
+        //  });
+        // console.log("socketGroupSaveMessage", saveMessage)
+        // socket.to(groupId).emit("receiverGroupMessage", saveMessage);
+        // socket.emit("receiverGroupMessage", saveMessage);
+        console.log(`📢 Group message sent to group ${groupId}`);
       }
-     console.log("groupId", groupId)
-      const saveMessage = await SendGroupMessage({ groupId, senderId, content, media });
-    
-      socket.to(groupId).emit("receiverGroupMessage", saveMessage);
-      socket.emit("receiverGroupMessage", saveMessage);
-      console.log(`📢 Group message sent to group ${groupId}`);
+    );
+
+    socket.on("groupMessagesRead", async ({ groupId, readerId }) => {
+      await GroupMessage.updateMany({
+        groupId,
+        seenBy: {
+          $ne: readerId,
+        },
+      },
+      {$addToSet:{seenBy:readerId
+
+      }}
+
+    );
+
+    const updatedMessages = await GroupMessage.find({ groupId })
+    .populate("sender", "_id username profilePic")
+    .populate("seenBy", "_id username profilePic");
+
+    console.log("updatedMessages", updatedMessages)
+    io.to(groupId).emit("groupSeenUpdate", {
+      groupId, messages: updatedMessages 
+    })
     });
-    
 
     socket.on("addToGroup", ({ groupId, adminId, newMemberId }) => {
       const group = groups.get(groupId);
@@ -363,7 +397,7 @@ const initializeSocket = (io) => {
 
     socket.on("removeFromGroup", ({ groupId, adminId, memberId }) => {
       const group = groups.get(groupId);
-      if (group && group.superAdmin ===adminId) {
+      if (group && group.superAdmin === adminId) {
         group.members.delete(memberId);
         console.log(`🚪 Member ${memberId} removed from group ${groupId}`);
       } else {

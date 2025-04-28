@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { friendsAtom, selectedFriendAtom } from "../states/States";
+import { friendsAtom, selectedFriendAtom, selectedGroupAtom } from "../states/States";
 import { useAtom } from "jotai";
 
 interface Friend {
@@ -18,6 +18,8 @@ interface FriendsListProps {
 const FriendsList: React.FC<FriendsListProps> = ({ friends, loading }) => {
   const [, setSelectedFriend] = useAtom(selectedFriendAtom);
   const [, setFriends] = useAtom(friendsAtom);
+  const [,setSelectedGroup] = useAtom(selectedGroupAtom);
+
 
   const handleSelectFriend = (friend: Friend) => {
     setSelectedFriend(friend);
@@ -41,6 +43,8 @@ const FriendsList: React.FC<FriendsListProps> = ({ friends, loading }) => {
         f.friendId === friend.friendId ? { ...f, unreadMessagesCount: 0 } : f
       )
     );
+    setSelectedGroup(null)
+
   };
 
   return (

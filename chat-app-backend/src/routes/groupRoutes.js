@@ -1,9 +1,9 @@
 const express = require("express")
 const router = express.Router()
-const { CreateGroup, GetAllGroups, SendGroupMessage, GetGroupMessages } = require("../controllers/groupController")
+const { CreateGroup, GetAllGroups, GetGroupMessages, SendGroupMessageToDb } = require("../controllers/groupController")
 
 router.post("/create-group", CreateGroup)
-router.post("/send-group-message", SendGroupMessage)
+router.post("/send-group-message", SendGroupMessageToDb)
 router.get("/:userId", GetAllGroups)
 router.get("/group-message/:groupId", GetGroupMessages)
 

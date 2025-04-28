@@ -48,7 +48,7 @@ const GroupChatPage = () => {
         groupName: groupName,
         groupProfilePic: groupProfile,
         groupMember: [...groupMembers, userId],
-        admins: [...groupAdmins, userId],
+        admins: [...groupAdmins],
         superAdmin: userId,
       };
       const groupData = await fetch(
