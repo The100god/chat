@@ -1,11 +1,9 @@
-"use client"
+"use client";
 
-import FindUser from "../components/FindUser"
+import FindUser from "../components/FindUser";
 
-const FriendRequest:React.FC =()=>{
-
-    return <FindUser/>
-    
-}
+const FriendRequest: React.FC = () => {
+  return <FindUser />;
+};
 
 export default FriendRequest;

@@ -5,13 +5,18 @@ import { useSocket } from "../../hooks/useSocket";
 import { useAtom } from "jotai";
 import {
   friendsAtom,
+  loadingMessageAtom,
+  messageAtom,
   selectedFriendAtom,
   selectedGroupAtom,
+  userIdAtom,
 } from "../../states/States";
 import MediaViewerModal from "../../components/MediaViewerModal";
 import EmojiPicker from "../../components/EmojiPicker";
 import VoiceRecorder from "../../components/VoiceRecorder";
 import { X } from "lucide-react";
+import ChatAreaLoading from "../../components/ChatAreaLoading";
+import { motion } from "framer-motion";
 
 interface Message {
   _id?: string;
@@ -44,9 +49,10 @@ export interface Friend {
 }
 
 export default function ChatArea() {
-  const userId = localStorage.getItem("userId")
-    ? localStorage.getItem("userId")
-    : null;
+  // const userId = localStorage.getItem("userId")
+  //   ? localStorage.getItem("userId")
+  //   : null;
+  const [userId] = useAtom(userIdAtom);
   const socket = useSocket(userId);
   // const hasMounted = useRef(false);
   const shouldScroll = useRef(true);
@@ -55,7 +61,7 @@ export default function ChatArea() {
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [showEmoji, setShowEmoji] = useState(false);
   const [selectedFriend] = useAtom(selectedFriendAtom);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useAtom(messageAtom);
   const [messageInput, setMessageInput] = useState<string>("");
   const [chatId, setChatId] = useState<string | null>(null);
   const [friends, setFriends] = useAtom(friendsAtom);
@@ -64,14 +70,44 @@ export default function ChatArea() {
   let typingTimeout: NodeJS.Timeout;
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [previewVisible, setPreviewVisible] = useState(false);
-  const [loadingMessages, setLoadingMessages] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useAtom(loadingMessageAtom);
   const [hasAutoScrolled, setHasAutoScrolled] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   //group
   const [selectedGroup] = useAtom(selectedGroupAtom);
+  const username = selectedFriend?.username || "Select a friend to chat";
+  const emojiSet = [
+    "💬",
+    "✨",
+    "🔥",
+    "💫",
+    "💖",
+    "🌈",
+    "🌸",
+    "🦋",
+    "🌟",
+    "💭",
+    "🌈",
+    "🌸",
+    "🦋",
+    "🌟",
+    "💭",
+  ];
 
+  const colors = [
+    "text-pink-400",
+    "text-amber-400",
+    "text-emerald-400",
+    "text-cyan-400",
+    "text-sky-400",
+    "text-indigo-400",
+    "text-violet-400",
+    "text-rose-400",
+    "text-fuchsia-400",
+    "text-lime-400",
+  ];
   // Join chat and fetch messages
   useEffect(() => {
     console.log("selectedGroup", selectedGroup);
@@ -107,6 +143,7 @@ export default function ChatArea() {
             setLoadingMessages(false);
           } else {
             setMessages([]); // or handle the error gracefully
+            setLoadingMessages(false);
             console.error("Fetched messages is not an array", messagesData);
           }
         } else if (selectedGroup) {
@@ -128,6 +165,7 @@ export default function ChatArea() {
             setLoadingMessages(false);
           } else {
             setMessages([]); // or handle the error gracefully
+            setLoadingMessages(false);
             console.error(
               "Fetched group messages is not an array",
               messagesData
@@ -190,11 +228,17 @@ export default function ChatArea() {
       }
     };
 
-    const handleGroupSeenUpdate = ({groupId:seenGroupId, messages:updatedMessges,}:{groupId:string, messages:Message[]})=>{
-      if(selectedGroup && seenGroupId === selectedGroup._id){
+    const handleGroupSeenUpdate = ({
+      groupId: seenGroupId,
+      messages: updatedMessges,
+    }: {
+      groupId: string;
+      messages: Message[];
+    }) => {
+      if (selectedGroup && seenGroupId === selectedGroup._id) {
         setMessages(updatedMessges);
       }
-    }
+    };
 
     socket.on("newGroupMessage", handleGroupMessage);
     socket.on("groupSeenUpdate", handleGroupSeenUpdate);
@@ -304,7 +348,7 @@ export default function ChatArea() {
             }
           : {
               chatId: savedMessage.chatId,
-              senderId: savedMessage.sender._id,
+              senderId: savedMessage.sender?._id,
               receiverId: savedMessage.receiver,
               media: savedMessage.media,
               content: savedMessage.content,
@@ -333,11 +377,11 @@ export default function ChatArea() {
       if (readerId === userId) return;
       // Mark messages as read locally if they were sent by current user
       setMessages((prevMessages) =>
-        prevMessages.map((msg) => {
+        prevMessages?.map((msg) => {
           const isSenderCurrentUser =
-            (typeof msg.sender === "string" && msg.sender === userId) ||
-            (typeof msg.sender === "object" && msg.sender._id === userId);
-          return isSenderCurrentUser && msg.chatId === ackChatId
+            (typeof msg?.sender === "string" && msg?.sender === userId) ||
+            (typeof msg?.sender === "object" && msg?.sender?._id === userId);
+          return isSenderCurrentUser && msg?.chatId === ackChatId
             ? { ...msg, isRead: true }
             : msg;
         })
@@ -361,7 +405,7 @@ export default function ChatArea() {
       groupId: string;
       messages: Message[];
     }) => {
-      if (selectedGroup && groupId === selectedGroup._id) {
+      if (selectedGroup && groupId === selectedGroup?._id) {
         setMessages(updatedMessages);
       }
     };
@@ -375,8 +419,12 @@ export default function ChatArea() {
 
   useEffect(() => {
     if (!hasAutoScrolled && shouldScroll.current && bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: "auto" });
-      setHasAutoScrolled(true); // prevent future auto-scrolls
+      setTimeout(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        setHasAutoScrolled(true); // prevent future auto-scrolls
+      }, 100);
+      // bottomRef.current.scrollIntoView({ behavior: "auto" });
+      // bottomRef.current.
     }
   }, [messages]);
 
@@ -418,10 +466,10 @@ export default function ChatArea() {
     const hasUnreadFromFriend = messages.some(
       (msg) =>
         !msg.isRead &&
-        ((typeof msg.sender === "string" &&
-          msg.sender === selectedFriend.friendId) ||
-          (typeof msg.sender === "object" &&
-            msg.sender._id === selectedFriend.friendId))
+        ((typeof msg?.sender === "string" &&
+          msg?.sender === selectedFriend.friendId) ||
+          (typeof msg?.sender === "object" &&
+            msg?.sender?._id === selectedFriend.friendId))
     );
 
     if (hasUnreadFromFriend) {
@@ -477,29 +525,74 @@ export default function ChatArea() {
     });
   };
 
+  const [floatingEmojis, setFloatingEmojis] = useState<
+    { id: number; emoji: string; x: number; y: number; size: number }[]
+  >([]);
+
+  useEffect(() => {
+    // Generate random emojis across the background
+    const emojis = Array.from({ length: 20 }).map((_, i) => ({
+      id: i,
+      emoji: emojiSet[Math.floor(Math.random() * emojiSet.length)],
+      x: Math.random() * 100, // random x%
+      y: Math.random() * 100, // random y%
+      size: Math.random() * 2 + 1.1, // random scale (1.5x - 3.5x)
+    }));
+    setFloatingEmojis(emojis);
+  }, []);
+
   // console.log("selectedFriend", selectedFriend)
   // console.log("messages", messages);
   return (
     <div className="flex flex-col bg-transparent h-full p-2 pb-5 overflow-y-auto">
-      <div
-        onClick={() => {
-          setShowEmoji(false);
-        }}
-        className="flex flex-row justify-center items-center gap-2 p-3"
-      >
-        {selectedFriend && (
-          <img
-            src={selectedFriend.profilePic}
-            alt="image"
-            className="w-[30px] rounded-full"
-          />
-        )}
-        <h2 className="flex justify-center items-center text-lg font-semibold">
-          {selectedFriend
-            ? `${selectedFriend.username}`
-            : "Select a friend to chat"}
-        </h2>
-      </div>
+      {!loadingMessages && (
+        <div
+          onClick={() => {
+            setShowEmoji(false);
+          }}
+          className="flex flex-row justify-center items-center gap-2 p-3"
+        >
+          {selectedFriend && (
+            <img
+              src={selectedFriend.profilePic}
+              alt="image"
+              className="w-[30px] rounded-full"
+            />
+          )}
+          {/* <h2 className="flex justify-center items-center text-lg font-semibold">
+            {selectedFriend
+              ? `${selectedFriend.username}`
+              : "Select a friend to chat"}
+          </h2> */}
+
+          <h2 className="flex justify-center items-center text-xl font-semibold space-x-1">
+            {selectedFriend ? (
+              <div className="flex">
+                {username.split("").map((char, i) => (
+                  <motion.span
+                    key={i}
+                    className={`${colors[i % colors.length]} inline-block`}
+                    animate={{
+                      y: [0, -6, 0], // Jump up and down
+                    }}
+                    transition={{
+                      duration: 0.6,
+                      delay: i * 0.1, // Stagger each letter
+                      repeat: Infinity,
+                      repeatDelay: 2,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    {char}
+                  </motion.span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-gray-500">{username}</span>
+            )}
+          </h2>
+        </div>
+      )}
       {!loadingMessages ? (
         <div
           ref={chatContainerRef}
@@ -519,18 +612,49 @@ export default function ChatArea() {
             onClick={() => {
               setShowEmoji(false);
             }}
-            className="h-full bg-gray-950 p-4 rounded-lg shadow-inner overflow-y-auto space-y-2"
+            className=" relative h-full bg-gray-950 p-4 rounded-lg shadow-inner overflow-y-auto space-y-2"
           >
-            {messages.length > 0 &&
-              messages.map((msg, idx) => {
+            {/* 🌸 Floating faint emojis */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+              {floatingEmojis.map((e) => (
+                <motion.span
+                  key={e.id}
+                  initial={{ opacity: 0.05, y: 0 }}
+                  animate={{
+                    opacity: [0.08, 0.35, 0.06],
+                    y: [10, -25, 10],
+                    rotate: [0, 10, -10, 0],
+                  }}
+                  transition={{
+                    duration: 6 + Math.random() * 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute select-none pointer-events-none"
+                  style={{
+                    top: `${e.y}%`,
+                    left: `${e.x}%`,
+                    fontSize: `${e.size}rem`,
+                    opacity: 0.9,
+                    filter: "blur(0.5px)",
+                  }}
+                >
+                  {e.emoji}
+                </motion.span>
+              ))}
+            </div>
+
+            {messages?.length > 0 &&
+              messages?.map((msg, idx) => {
                 const isSentByUser =
-                  (typeof msg.sender === "string" && msg.sender === userId) ||
-                  (typeof msg.sender === "object" && msg.sender._id === userId);
+                  (typeof msg?.sender === "string" && msg?.sender === userId) ||
+                  (typeof msg?.sender === "object" &&
+                    msg?.sender?._id === userId);
                 const isFromFriend =
                   (typeof msg.sender === "string" &&
-                    msg.sender === selectedFriend?.friendId) ||
+                    msg?.sender === selectedFriend?.friendId) ||
                   (typeof msg.sender === "object" &&
-                    msg.sender._id === selectedFriend?.friendId);
+                    msg?.sender?._id === selectedFriend?.friendId);
                 const isGroupChat = !!selectedGroup;
                 // const isFromFriend = senderId === selectedFriend?.friendId;
 
@@ -649,11 +773,12 @@ export default function ChatArea() {
           </div>
         </div>
       ) : (
-        <div className="h-[85%] bg-gray-950 p-4 rounded-lg flex items-center justify-center text-white text-sm">
-          Loading chat...
+        <div className="h-[100%] bg-gray-950 p-4 rounded-lg flex items-center justify-center text-white text-sm">
+          <ChatAreaLoading />
         </div>
       )}
-      {(selectedFriend || selectedGroup) &&
+      {!loadingMessages &&
+        (selectedFriend || selectedGroup) &&
         previewVisible &&
         mediaFiles.length > 0 && (
           <div className=" relative flex flex-wrap gap-2 mb-2">
@@ -673,7 +798,7 @@ export default function ChatArea() {
             </div>
           </div>
         )}
-      {showEmoji && (
+      {!loadingMessages && showEmoji && (
         <div className="flex relative left-0">
           <EmojiPicker
             onEmojiClick={(emoji) => setMessageInput((prev) => prev + emoji)}
@@ -681,8 +806,8 @@ export default function ChatArea() {
         </div>
       )}
 
-      {(selectedFriend || selectedGroup) && (
-        <div className="flex flex-row items-center mt-4 gap-1">
+      {!loadingMessages && (selectedFriend || selectedGroup) && (
+        <div className="flex flex-row items-center mt-4 gap-2">
           <input
             type="file"
             multiple
@@ -693,7 +818,7 @@ export default function ChatArea() {
           />
           <label
             htmlFor="upload"
-            className="cursor-pointer px-4 py-2 text-white bg-gray-800 rounded"
+            className="cursor-pointer px-4 py-2 border-1 border-lime-300 text-white bg-gray-800 rounded"
           >
             📷
           </label>
@@ -707,7 +832,7 @@ export default function ChatArea() {
           />
 
           <div
-            className="cursor-pointer px-4 py-2 text-white bg-gray-800 rounded"
+            className="cursor-pointer px-4 py-2 text-white border-1 border-lime-300 bg-gray-800 rounded"
             onClick={() => setShowEmoji(!showEmoji)}
           >
             😀

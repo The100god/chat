@@ -12,6 +12,7 @@ import {
   friendsCountsAtom,
   friendsRequestsAtom,
   groupChatOpenAtom,
+  userIdAtom,
 } from "../../states/States";
 import FindUser from "../../components/FindUser";
 import FriendRequests from "../../components/FriendRequests";
@@ -37,7 +38,8 @@ export default function LeftSection() {
   const [, setFriendsCounts] = useAtom(friendsCountsAtom);
   const [findFriendWithChat] = useAtom(findFriendWithChatAtom);
 
-  const [userId] = useState(() => localStorage.getItem("userId"));
+  const [userId, setUserId] = useAtom(userIdAtom);
+  // const [userId, setUserId] = useAtom(() => localStorage.getItem("userId"));
   const socket = useSocket(userId);
   // Fetch friends data from backend
   const fetchFriends = async () => {
@@ -51,16 +53,23 @@ export default function LeftSection() {
       setLoading(false);
     } catch (error) {
       console.error("Error fetching friends:", error);
-      setLoading(false);
+      setLoading(true);
     }
   };
 
+  useEffect(() => {
+    const id = localStorage.getItem("userId");
+    if (id) {
+      setUserId(id);
+    }
+  }, []);
+
   // Run fetchFriends when the component mounts
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && userId) {
       fetchFriends();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, userId]);
 
   // Listen to real-time updates from socket
   useEffect(() => {
@@ -85,6 +94,7 @@ export default function LeftSection() {
             : friend
         )
       );
+      setLoading(false);
     };
 
     socket.on("friendsUpdated", handleFriendsUpdate);
@@ -115,18 +125,14 @@ export default function LeftSection() {
   console.log("friends", friends);
   return (
     <div className="p-4 bg-transparent">
+      {findFriend && <FindUser />}
+      {friendsRequests && <FriendRequests />}
+      {allFriends && <AllFriends friends={friends} loading={loading} />}
+      {groupChatOpen && <GroupChatPage />}
 
-      {findFriend &&
-        <FindUser />}
-       {friendsRequests &&
-        <FriendRequests />}
-      {allFriends &&
-        <AllFriends friends={friends} loading={loading} />}
-      {groupChatOpen &&
-        <GroupChatPage/>}
-      
-      { findFriendWithChat && <FriendsList friends={friends} loading={loading} />
-    }
+      {findFriendWithChat && (
+        <FriendsList loading={loading} />
+      )}
       {/* {findFriend ? (
         <FindUser />
       ) : friendsRequests ? (

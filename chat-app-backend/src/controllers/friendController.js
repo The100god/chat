@@ -6,11 +6,25 @@ const User = require("../models/User");
 const sendFriendRequest = async (req, res) => {
   const { senderId, receiverId } = req.body;
   try {
+    
     //Check if request already sent
     const receiver = await User.findById(receiverId);
+    const sender = await User.findById(senderId);
+    if (!receiver || !sender) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
     if (receiver.friendRequests.includes(senderId)) {
       return res.status(400).json({ message: "Friend request already sent." });
     }
+
+    if (
+      receiver.friends.includes(senderId) ||
+      sender.friends.includes(receiverId)
+    ) {
+      return res.status(400).json({ message: "Already friends." });
+    }
+
 
     //Add senderId to receiver's FriendRequests
     receiver.friendRequests.push(senderId);
@@ -26,6 +40,7 @@ const getFriendRequests = async (req, res) => {
   const { userId } = req.params;
 
   try {
+    
     const user = await User.findById(userId).populate(
       "friendRequests",
       "username email"
@@ -74,6 +89,9 @@ const handleFriendRequestSocket = async ({ senderId, receiverId, status,io, user
   const receiver = await User.findById(receiverId);
   if (!receiver) throw new Error("Receiver not found");
 
+  // if (!receiver.friends.includes(senderId)) {
+  //   throw new Error("No friend request found");
+  // }
   if (!receiver.friendRequests.includes(senderId)) {
     throw new Error("No friend request found");
   }

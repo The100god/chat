@@ -1,10 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import {
-  FaMicrophone,
-  FaStop,
-} from "react-icons/fa";
+import React, { useRef, useState } from "react";
+import { FaMicrophone, FaStop } from "react-icons/fa";
 
 interface VoiceRecorderProps {
   onSend: (audioBlob: File) => void;
@@ -43,15 +40,15 @@ export default function VoiceRecorder({ onSend }: VoiceRecorderProps) {
   };
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center cursor-pointer space-x-2">
       <button
         onClick={recording ? stopRecording : startRecording}
         className={`p-2 rounded-full ${
           recording ? "bg-red-500 animate-pulse" : "bg-gray-800"
-        } text-white`}
+        } text-white border-1 border-lime-300`}
         title={recording ? "Stop Recording" : "Start Recording"}
       >
-        {recording ? <FaStop /> : <FaMicrophone />}
+        {recording ? <FaStop className=" cursor-pointer"/> : <FaMicrophone className=" cursor-pointer"/>}
       </button>
     </div>
   );

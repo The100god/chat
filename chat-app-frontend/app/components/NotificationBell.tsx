@@ -2,12 +2,13 @@
 import { useEffect, useState } from "react";
 // import { Bell } from "lucide-react"; // Using Lucide Icons
 import { getSocket, useSocket } from "../hooks/useSocket";
+import { useAtom } from "jotai";
+import { userIdAtom } from "../states/States";
 
 const NotificationBell = () => {
 
 const [requestCount, setRequestCount] = useState(0);
-  const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
-
+const [userId] = useAtom(userIdAtom);
   useEffect(() => {
     if (!userId) return;
 

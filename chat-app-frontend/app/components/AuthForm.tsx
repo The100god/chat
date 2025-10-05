@@ -67,8 +67,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
 
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <div className="w-96 p-6 bg-white shadow-md rounded-lg">
+    <div className="flex justify-center items-center min-h-screen bg-gray-900">
+      <div className="w-96 p-6 bg-gray-800 shadow-md rounded-lg">
         <h2 className="text-2xl font-bold mb-4 text-center">
           {type === "signup" ? "Sign Up" : "Login"}
         </h2>

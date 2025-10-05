@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useRef, useState } from "react";
 import { Dialog, DialogPanel } from "@headlessui/react";
 import {
@@ -75,7 +76,7 @@ const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
         <X size={24} />
       </button>
       <DialogPanel className="relative max-w-3xl w-full max-h-[90vh] p-4 rounded-lg bg-black">
-        {media.length > 1 && (
+        {media?.length > 1 && (
           <>
             <button
               onClick={handlePrev}

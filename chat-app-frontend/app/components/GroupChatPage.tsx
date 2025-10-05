@@ -10,6 +10,7 @@ import {
   isNewGroupWindowAtom,
   selectedFriendAtom,
   selectedGroupAtom,
+  userIdAtom,
 } from "../states/States";
 import { useSocket } from "../hooks/useSocket";
 
@@ -22,11 +23,8 @@ export interface Group {
   superAdmin: String | null;
 }
 
-
 const GroupChatPage = () => {
-  const userId = localStorage.getItem("userId")
-    ? localStorage.getItem("userId")
-    : null;
+  const [userId] = useAtom(userIdAtom);
   const socket = useSocket(userId);
   const [isNewGroupWindow, setIsNewGroupWindow] = useAtom(isNewGroupWindowAtom);
   const [groupName, setGroupName] = useAtom(groupNameAtom);
@@ -34,21 +32,19 @@ const GroupChatPage = () => {
   const [groupMembers, setGroupMembers] = useAtom(groupMembersAtom);
   const [groupProfile, setGroupProfile] = useAtom(groupProfileAtom);
 
-  const [,setSelectedGroup] = useAtom(selectedGroupAtom);
-  const [,setSelectedFriend] = useAtom(selectedFriendAtom); // clear friend
+  const [, setSelectedGroup] = useAtom(selectedGroupAtom);
+  const [, setSelectedFriend] = useAtom(selectedFriendAtom); // clear friend
   const [groups, setGroups] = useState<Group[]>([]);
 
   if (!userId && !socket) return null;
 
   const handleCreateGroupModalSubmit = async () => {
     try {
-     
-      
       const groupDataVariables = {
         groupName: groupName,
         groupProfilePic: groupProfile,
         groupMember: [...groupMembers, userId],
-        admins: [...groupAdmins],
+        admins: [...groupAdmins, userId],
         superAdmin: userId,
       };
       const groupData = await fetch(
@@ -154,21 +150,21 @@ const GroupChatPage = () => {
 
       <div className="flex flex-col h-[70vh] w-full overflow-auto space-y-4">
         {groups &&
-          groups.map((g, i) => (
+          groups?.map((g, i) => (
             <div
               key={i}
-              className="flex items-center space-x-4 p-3 bg-gray-900 rounded-xl shadow-sm hover:bg-gray-800 transition"
+              className="flex items-center space-x-4 p-3 bg-gray-900 rounded-xl shadow-sm hover:bg-gray-800 transition cursor-pointer"
               onClick={() => {
                 setSelectedFriend(null);
                 setSelectedGroup(g);
               }}
             >
               <img
-                src={g.groupProfilePic}
+                src={g?.groupProfilePic}
                 alt="Group"
-                className="w-16 h-16 rounded-full object-cover"
+                className="w-12 h-12 rounded-full border-2 border-lime-300 object-cover"
               />
-              <span className="text-lg font-medium">{g.groupName}</span>
+              <span className="text-lg font-medium">{g?.groupName}</span>
             </div>
           ))}
       </div>

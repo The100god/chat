@@ -83,22 +83,22 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({ handleCreateGroupModalS
         <div className="mb-4">
           <h3 className="text-lg font-semibold mb-2">Add Members</h3>
           <div className="max-h-48 overflow-y-auto space-y-2">
-            {friends.map((fnd, index) => (
+            {friends?.map((fnd, index) => (
               <div key={index} className="flex justify-between items-center bg-gray-800 hover:bg-gray-700 p-2 rounded-md">
                 <div className="flex flex-row gap-4 items-center">
 
                 <img
-              src={fnd.profilePic}
+              src={fnd?.profilePic}
               alt="frend Profile"
-              className="w-8 h-8 rounded-full object-cover"
+              className="w-8 h-8 rounded-full object-cover border-2 border-lime-300"
             />
-                <span>{fnd.username}</span>
+                <span>{fnd?.username}</span>
                 </div>
                 <button
                   className="text-sm cursor-pointer bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md"
                   onClick={() => {
                     setGroupMembers((prev) =>
-                      prev.includes(fnd.friendId) ? prev : [...prev, fnd.friendId]
+                      prev.includes(fnd?.friendId) ? prev : [...prev, fnd?.friendId]
                     );
                   }}
                 >

@@ -65,3 +65,32 @@ body {
     background-position: 200% 0;
   }
 }
+
+@keyframes fadeInOut {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spinSlow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Utility classes */
+.animate-fadeInOut {
+  animation: fadeInOut 3s infinite ease-in-out;
+}
+
+.animate-spinSlow {
+  animation: spinSlow 20s linear infinite;
+}

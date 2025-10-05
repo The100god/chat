@@ -1,4 +1,4 @@
-"use client";
+"use client"
 import { useAuth } from "../context/AuthContext";
 import {
   FaUserFriends,
@@ -18,9 +18,11 @@ import {
   friendsCountsAtom,
   friendsRequestsAtom,
   groupChatOpenAtom,
+  loadingMessageAtom,
+  messageAtom,
 } from "../states/States";
 import NotificationBell from "./NotificationBell";
-import { useEffect, useRef, useState } from "react";
+// import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const Header: React.FC = () => {
@@ -31,80 +33,84 @@ const Header: React.FC = () => {
   const [, setAllFriends] = useAtom(allFriendsAtom);
   const [, setGroupChatOpen] = useAtom(groupChatOpenAtom);
   const [friendsCounts] = useAtom(friendsCountsAtom);
+  const [, setMessages] = useAtom(messageAtom);
+  const [, setLoadingMessages] = useAtom(loadingMessageAtom);
 
-  const headerRef = useRef<HTMLDivElement>(null);
-  const [transform, setTransform] = useState("rotateX(0deg) rotateY(0deg)");
-  const [isHovered, setIsHovered] = useState(false);
-  const [canAnimate, setCanAnimate] = useState(false);
-  const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
-  const router = useRouter()
+  // const headerRef = useRef<HTMLDivElement>(null);
+  // const [transform, setTransform] = useState("rotateX(0deg) rotateY(0deg)");
+  // const [isHovered, setIsHovered] = useState(false);
+  // const [canAnimate, setCanAnimate] = useState(false);
+  // const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
 
+  // const handleMouseMove = (e: React.MouseEvent) => {
+  //   if (!canAnimate || !headerRef.current) return;
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!canAnimate || !headerRef.current) return;
+  //   const rect = headerRef.current.getBoundingClientRect();
+  //   const x = e.clientX - rect.left;
+  //   const y = e.clientY - rect.top;
+  //   const centerX = rect.width / 2;
+  //   const centerY = rect.height / 2;
 
-    const rect = headerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
+  //   const offsetX = x - centerX;
+  //   const offsetY = y - centerY;
 
-    const offsetX = x - centerX;
-    const offsetY = y - centerY;
+  //   const rotateY = -(offsetX / centerX) * 15;
+  //   const rotateX = (offsetY / centerY) * 15;
 
-    const rotateY = -(offsetX / centerX) * 15;
-    const rotateX = (offsetY / centerY) * 15;
+  //   setTransform(`rotateX(${rotateX}deg) rotateY(${rotateY}deg)`);
+  // };
 
-    setTransform(`rotateX(${rotateX}deg) rotateY(${rotateY}deg)`);
-  };
+  // const handleMouseEnter = () => {
+  //   setIsHovered(true);
+  //   hoverTimeout.current = setTimeout(() => {
+  //     setCanAnimate(true);
+  //   }, 500); // 1 second delay
+  // };
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    hoverTimeout.current = setTimeout(() => {
-      setCanAnimate(true);
-    }, 500); // 1 second delay
-  };
+  // const handleMouseLeave = () => {
+  //   if (hoverTimeout.current) {
+  //     clearTimeout(hoverTimeout.current);
+  //     hoverTimeout.current = null;
+  //   }
+  //   setTransform("rotateX(0deg) rotateY(0deg)");
+  //   setCanAnimate(false);
+  //   setIsHovered(false);
+  // };
 
-  const handleMouseLeave = () => {
-    if (hoverTimeout.current) {
-      clearTimeout(hoverTimeout.current);
-      hoverTimeout.current = null;
-    }
-    setTransform("rotateX(0deg) rotateY(0deg)");
-    setCanAnimate(false);
-    setIsHovered(false);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+  //     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+  //   };
+  // }, []);
 
   if (!isAuthenticated) {
     return null; // Don't show header if not authenticated
   }
   // Dummy data (replace with real data from backend)
   const friendCount = friendsCounts;
-  const profilePic = "/profile.jpg"; // Dummy profile image
+  const profilePic = "/user.jpg"; // Dummy profile image
   return (
     <header className="w-full bg-black shadow-md py-4 px-6 flex justify-between items-center">
       <div
-        ref={headerRef}
-        className={`relative w-[80%] m-auto h-20 rounded-4xl flex items-center justify-around
-          transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] 
-          ${isHovered ? "glow" : ""}
-        `}
-        style={{
-          transform,
-          transformStyle: "preserve-3d",
-          perspective: "1000px",
-          background: "linear-gradient(135deg, rgb(8 22 53), rgb(2 8 32)), radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.1), transparent 40%)",
-          backgroundBlendMode: "overlay",
-        }}
-        onMouseMove={handleMouseMove}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        // ref={headerRef}
+        className={`relative w-[80%] m-auto h-20 rounded-4xl flex items-center justify-around transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] glow`}
+
+        // className={`relative w-[80%] m-auto h-20 rounded-4xl flex items-center justify-around
+        //   transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] 
+        //   ${isHovered ? "glow" : ""}
+        // `}
+        // style={{
+        //   transform,
+        //   transformStyle: "preserve-3d",
+        //   perspective: "1000px",
+        //   background:
+        //     "linear-gradient(135deg, rgb(8 22 53), rgb(2 8 32)), radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.1), transparent 40%)",
+        //   backgroundBlendMode: "overlay",
+        // }}
+        // onMouseMove={handleMouseMove}
+        // onMouseEnter={handleMouseEnter}
+        // onMouseLeave={handleMouseLeave}
       >
         <div className="absolute inset-0 pointer-events-none shimmer-mask rounded-4xl z-0" />
 
@@ -124,11 +130,17 @@ const Header: React.FC = () => {
               setFindFriend(false);
               setFriendsRequests(false);
               setAllFriends(false);
-              setGroupChatOpen(false)
-              setFindFriendWithChat(true)
-              router.push("/")
-            }}>
-            <div className="text-2xl font-bold cursor-pointer text-lime-300">Gappo</div>
+              setGroupChatOpen(false);
+              setFindFriendWithChat(true);
+              setMessages([]);
+              setLoadingMessages(true);
+              router.push("/");
+            }}
+          >
+            <div className="text-2xl font-bold cursor-pointer text-lime-300">
+              {/* Gappo */}
+              Chugli
+            </div>
           </div>
         </div>
 
@@ -137,12 +149,14 @@ const Header: React.FC = () => {
           {/* Home */}
           <div
             onClick={() => {
-              setFindFriend(false)
+              setFindFriend(false);
               setFriendsRequests(false);
               setAllFriends(false);
-              setGroupChatOpen(false)
-              setFindFriendWithChat(true)
-              router.push("/")
+              setGroupChatOpen(false);
+              setFindFriendWithChat(true);
+              setMessages([]);
+              setLoadingMessages(true);
+              router.push("/");
             }}
             className="flex cursor-pointer items-center space-x-2 hover:text-lime-300"
           >
@@ -155,9 +169,10 @@ const Header: React.FC = () => {
               setFindFriend(true);
               setFriendsRequests(false);
               setAllFriends(false);
-              setGroupChatOpen(false)
-              setFindFriendWithChat(false)
-
+              setGroupChatOpen(false);
+              setFindFriendWithChat(false);
+              setMessages([]);
+              setLoadingMessages(true);
             }}
             className="flex cursor-pointer items-center space-x-2 hover:text-lime-300"
           >
@@ -170,9 +185,10 @@ const Header: React.FC = () => {
               setFindFriend(false);
               setFriendsRequests(true);
               setAllFriends(false);
-              setGroupChatOpen(false)
-              setFindFriendWithChat(false)
-
+              setGroupChatOpen(false);
+              setFindFriendWithChat(false);
+              setMessages([]);
+              setLoadingMessages(true);
             }}
             className="flex relative cursor-pointer items-center space-x-2 hover:text-lime-300"
           >
@@ -189,9 +205,10 @@ const Header: React.FC = () => {
               setFindFriend(false);
               setFriendsRequests(false);
               setAllFriends(true);
-              setGroupChatOpen(false)
-              setFindFriendWithChat(false)
-
+              setGroupChatOpen(false);
+              setFindFriendWithChat(false);
+              setMessages([]);
+              setLoadingMessages(true);
             }}
             className="flex cursor-pointer items-center space-x-2 hover:text-lime-300"
           >
@@ -205,9 +222,10 @@ const Header: React.FC = () => {
               setFindFriend(false);
               setFriendsRequests(false);
               setAllFriends(false);
-              setGroupChatOpen(true)
-              setFindFriendWithChat(false)
-
+              setGroupChatOpen(true);
+              setFindFriendWithChat(false);
+              setMessages([]);
+              setLoadingMessages(true);
             }}
             className="flex cursor-pointer items-center space-x-2 hover:text-lime-300"
           >

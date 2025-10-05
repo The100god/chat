@@ -1,11 +1,23 @@
-'use client'
+"use client";
 // FindUser.tsx (Search and Send Friend Request)
-import { useEffect, useState } from "react";
-import {getSocket, useSocket} from "../hooks/useSocket";
+import React, { useEffect, useState } from "react";
+import { getSocket, useSocket } from "../hooks/useSocket";
+import { userIdAtom } from "../states/States";
+import { useAtom } from "jotai";
 
+interface Friend {
+  friendId: string;
+  username: string;
+  profilePic: string;
+  unreadMessagesCount: number;
+}
+
+let debounceTimeout: NodeJS.Timeout;
 // Function to search users by username
-const searchUsers = async (username: string) => {
-  const response = await fetch(`http://localhost:5000/api/users/search?username=${username}`);
+const searchUsers = async (username: string, userId: string | null) => {
+  const response = await fetch(
+    `http://localhost:5000/api/users/search?username=${username}&userId=${userId}`
+  );
   return await response.json();
 };
 
@@ -31,19 +43,36 @@ const FindUser = () => {
   const [users, setUsers] = useState([]);
   const [message, setMessage] = useState("");
 
-  const userId = localStorage.getItem("userId") ? localStorage.getItem("userId") : null;
+  const [userId] = useAtom(userIdAtom);
   useEffect(() => {
     if (userId) {
       useSocket(userId); // ✅ Connect and emit 'join'
     }
   }, [userId]);
 
-  const handleSearch = async () => {
-    if (searchQuery.trim()) {
-      const foundUsers = await searchUsers(searchQuery);
-      setUsers(foundUsers);
+  // const handleSearch = async () => {
+  //   if (searchQuery.trim()) {
+  //     const foundUsers = await searchUsers(searchQuery);
+  //     setUsers(foundUsers);
+  //   }
+  // };
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setUsers([]);
+      return;
     }
-  };
+
+    clearTimeout(debounceTimeout);
+
+    debounceTimeout = setTimeout(async () => {
+      const foundUsers = await searchUsers(searchQuery.trim(), userId);
+      console.log("foundUsers", foundUsers);
+      setUsers(foundUsers);
+    }, 300);
+
+    return () => clearTimeout(debounceTimeout);
+  }, [searchQuery]);
 
   const handleSendRequest = async (receiverId: string) => {
     // const result = await sendFriendRequest(socket, userId, receiverId);
@@ -60,23 +89,44 @@ const FindUser = () => {
   };
 
   return (
-    <div>
-      <h1>Search Users</h1>
-      <input
-        type="text"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="Search by username"
-      />
-      <button onClick={handleSearch}>Search</button>
+    <div className="flex flex-col justify-start items-start w-full h-full">
+      <h1 className="text-3xl font-medium text-lime-300 mb-2">
+        Looking For Friends?
+      </h1>
 
-      {message && <p>{message}</p>}
+      <div className="flex flex-row justify-start items-center w-full p-2 mb-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search by username"
+          className="border-b-2 outline-none bg-gray-900 h-[40px] rounded-lg p-1 pl-3 text-white w-[80%]"
+        />
+        {/* <button onClick={handleSearch}>Search</button> */}
+      </div>
 
-      <div>
-        {users.map((user: any) => (
-          <div key={user._id}>
-            <p>{user.username}</p>
-            <button onClick={() => handleSendRequest(user._id)}>Send Friend Request</button>
+      {message && <p className="text-green-400 p-2">{message}</p>}
+
+      <div className="flex flex-col justify-start items-start gap-4 w-full px-2 py-6">
+        {users?.map((user: any) => (
+          <div
+            key={user?._id}
+            className="flex flex-row justify-between items-center bg-gray-900 hover:bg-gray-800 rounded-lg w-[80%] px-3 py-4"
+          >
+            <div className="flex flex-row justify-start items-center gap-3">
+              <img
+                src={user?.profilePic}
+                alt="pic"
+                className="w-8 h-8 rounded-full border-2 border-lime-300 "
+              />
+              <p>{user?.username}</p>
+            </div>
+            <button
+              className="flex justify-center items-center w-fit h-fit bg-green-600 hover:bg-green-500 px-3 py-1 cursor-pointer rounded-lg text-white text-sm font-medium"
+              onClick={() => handleSendRequest(user._id)}
+            >
+              Make Friend
+            </button>
           </div>
         ))}
       </div>

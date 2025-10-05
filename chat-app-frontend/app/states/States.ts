@@ -1,10 +1,41 @@
+"use client"
 import { atom } from "jotai";
 import { Friend } from "../pages/chatAreas/page";
 import { Group } from "../components/GroupChatPage";
 
-const userId = localStorage.getItem("userId")
-    ? localStorage.getItem("userId")
-    : null;
+
+interface Message {
+    _id?: string;
+    chatId?: string;
+    groupId?: string;
+    sender?:
+      | {
+          _id: string;
+          username: string;
+          profilePic: string;
+        }
+      | string;
+    receiver?: string | object;
+    content?: string;
+    media?: string[]; // not [string]
+    createdAt?: string;
+    isRead?: boolean;
+    seenBy?: {
+      _id: string;
+      username: string;
+      profilePic: string;
+    }[];
+  }
+
+
+// const userId:string|null = localStorage.getItem("userId")
+//     ? localStorage.getItem("userId")
+//     : null;
+  
+export const userIdAtom=atom<string|null>(null)
+// const [userId] = useState<string|null>(() => localStorage.getItem("userId"));
+export const messageAtom = atom<Message[]>([]);
+export const loadingMessageAtom = atom<boolean>(true);
 
 export const findFriendAtom = atom<boolean>(false);
 export const findFriendWithChatAtom = atom<boolean>(true);
@@ -17,7 +48,7 @@ export const friendsAtom = atom<Friend[]>([]);
 
 export const selectedGroupAtom = atom<Group | null>(null);
 export const groupNameAtom = atom<String>("");
-export const groupAdminsAtom = atom<String[]>(userId ? [userId] : []);
+export const groupAdminsAtom = atom<String[]>([]);
 export const groupMembersAtom = atom<String[]>([]);
 export const groupProfileAtom = atom<string>("");
 export const isNewGroupWindowAtom = atom<boolean>(false);

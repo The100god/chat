@@ -1,6 +1,8 @@
-'use client'
+"use client";
 import { useState, useEffect } from "react";
-import {useSocket} from "../hooks/useSocket";
+import { useSocket } from "../hooks/useSocket";
+import { useAtom } from "jotai";
+import { userIdAtom } from "../states/States";
 
 // Function to fetch pending friend requests
 // const fetchFriendRequests = async (userId: string) => {
@@ -24,7 +26,7 @@ import {useSocket} from "../hooks/useSocket";
 const FriendRequests = () => {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const userId = localStorage.getItem("userId"); // Get logged-in user's ID
+  const [userId] = useAtom(userIdAtom);
   const socket = useSocket(userId);
 
   // useEffect(() => {
@@ -46,43 +48,51 @@ const FriendRequests = () => {
 
   useEffect(() => {
     if (!userId || !socket) return;
-  
+
     // 👋 Join the server via socket
     // socket.emit("join", userId);
-  
+
     // 🔄 Fetch initial friend requests from DB via socket
     socket.emit("getFriendRequests", { userId });
-  
+
     // 📥 Set initial list of friend requests
     const handleFriendRequestsList = (data: any[]) => {
       setRequests(data);
       setLoading(false);
     };
-  
+
     // 📥 Real-time new friend request received
-    const handleNewFriendRequest = ({ senderId, username, profilePic  }: { senderId: string, username:string, profilePic:string }) => {
+    const handleNewFriendRequest = ({
+      senderId,
+      username,
+      profilePic,
+    }: {
+      senderId: string;
+      username: string;
+      profilePic: string;
+    }) => {
       // Avoid duplicates if already in list
       setRequests((prev) => {
         if (prev.some((req) => req._id === senderId)) return prev;
         return [...prev, { _id: senderId, username, profilePic }];
       });
     };
-  
+
     // ✅ Friend Request Accepted
     const handleAccepted = ({ receiverId }: { receiverId: string }) => {
       console.log("✅ Your friend request was accepted by", receiverId);
     };
-  
+
     // ❌ Friend Request Denied
     const handleDenied = ({ receiverId }: { receiverId: string }) => {
       console.log("❌ Your friend request was denied by", receiverId);
     };
-  
+
     socket.on("friendRequestsList", handleFriendRequestsList);
     socket.on("friendRequestReceived", handleNewFriendRequest);
     socket.on("friendRequestAccepted", handleAccepted);
     socket.on("friendRequestDenied", handleDenied);
-  
+
     return () => {
       socket.off("friendRequestsList", handleFriendRequestsList);
       socket.off("friendRequestReceived", handleNewFriendRequest);
@@ -90,9 +100,12 @@ const FriendRequests = () => {
       socket.off("friendRequestDenied", handleDenied);
     };
   }, [userId, socket]);
-  
-console.log("requests", requests)
-  const handleResponse = async (senderId: string, action: "accept" | "declined") => {
+
+  console.log("requests", requests);
+  const handleResponse = async (
+    senderId: string,
+    action: "accept" | "declined"
+  ) => {
     // if (userId) {
     //   await respondToFriendRequest(userId, senderId, action);
     //   setRequests((prev) => prev.filter((req) => req._id !== senderId));
@@ -118,23 +131,31 @@ console.log("requests", requests)
       ) : requests.length === 0 ? (
         <p>No new friend requests.</p>
       ) : (
-        requests.map((req) => (
-          <div key={req._id} className="flex justify-between items-center bg-gray-900 p-2 rounded-md mb-2">
+        requests?.map((req) => (
+          <div
+            key={req?._id}
+            className="flex justify-between items-center bg-gray-900 p-2 rounded-md mb-2"
+          >
             <div className="flex flex-row gap-2 items-center">
-
-            <span className="flex border border-white rounded-full w-8 h-8 p-[1px] justify-center items-center"><img className="flex rounded-full w-full h-full" src={req.profilePic} alt="pic"  /></span>
-            <p>{req.username}</p>
+              <span className="flex border border-white rounded-full w-8 h-8 p-[1px] justify-center items-center">
+                <img
+                  className="flex rounded-full border-2 border-lime-300 w-full h-full"
+                  src={req?.profilePic}
+                  alt="pic"
+                />
+              </span>
+              <p>{req?.username}</p>
             </div>
             <div>
               <button
                 className="bg-green-500 cursor-pointer text-white px-2 py-1 rounded-md mr-2"
-                onClick={() => handleResponse(req._id, "accept")}
+                onClick={() => handleResponse(req?._id, "accept")}
               >
                 Accept
               </button>
               <button
                 className="bg-red-500 cursor-pointer text-white px-2 py-1 rounded-md"
-                onClick={() => handleResponse(req._id, "declined")}
+                onClick={() => handleResponse(req?._id, "declined")}
               >
                 Reject
               </button>

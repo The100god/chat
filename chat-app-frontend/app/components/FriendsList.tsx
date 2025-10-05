@@ -1,6 +1,11 @@
 "use client";
 import React from "react";
-import { friendsAtom, selectedFriendAtom, selectedGroupAtom } from "../states/States";
+import {
+  friendsAtom,
+  selectedFriendAtom,
+  selectedGroupAtom,
+  userIdAtom,
+} from "../states/States";
 import { useAtom } from "jotai";
 
 interface Friend {
@@ -11,22 +16,22 @@ interface Friend {
 }
 
 interface FriendsListProps {
-  friends: Friend[];
+  // friends: Friend[];
   loading: boolean;
 }
 
-const FriendsList: React.FC<FriendsListProps> = ({ friends, loading }) => {
+const FriendsList: React.FC<FriendsListProps> = ({ loading }) => {
   const [, setSelectedFriend] = useAtom(selectedFriendAtom);
-  const [, setFriends] = useAtom(friendsAtom);
-  const [,setSelectedGroup] = useAtom(selectedGroupAtom);
-
+  const [friends, setFriends] = useAtom(friendsAtom);
+  const [, setSelectedGroup] = useAtom(selectedGroupAtom);
+  const [userId] = useAtom(userIdAtom);
 
   const handleSelectFriend = (friend: Friend) => {
     setSelectedFriend(friend);
 
     // Sync to backend and mark messages as read
-    const userId = localStorage.getItem("userId");
-    console.log("ids", )
+    // const userId = localStorage.getItem("userId");
+    console.log("ids");
     if (userId) {
       fetch("http://localhost:5000/api/message/mark-read", {
         method: "PUT",
@@ -43,8 +48,7 @@ const FriendsList: React.FC<FriendsListProps> = ({ friends, loading }) => {
         f.friendId === friend.friendId ? { ...f, unreadMessagesCount: 0 } : f
       )
     );
-    setSelectedGroup(null)
-
+    setSelectedGroup(null);
   };
 
   return (
@@ -53,29 +57,31 @@ const FriendsList: React.FC<FriendsListProps> = ({ friends, loading }) => {
         <p>Loading...</p>
       ) : (
         <ul className="space-y-3">
-          {friends.map((friend) => (
+          {friends && friends.map((friend) => (
             <li
-              key={friend.friendId}
+              key={friend?.friendId}
               onClick={() => handleSelectFriend(friend)}
               className="flex items-center bg-gray-900 p-2 rounded-xl cursor-pointer hover:bg-gray-800 transition duration-200"
             >
               <img
-                src={friend.profilePic || "/default-profile-pic.jpg"}
-                alt={friend.username}
-                className="w-12 h-12 rounded-full mr-4 object-cover"
+                src={friend?.profilePic || "/default-profile-pic.jpg"}
+                alt={friend?.username}
+                className="w-12 h-12 rounded-full border-2 border-lime-300 mr-4 object-cover"
               />
               <div className="flex-1">
                 <p
                   className={`text-sm ${
-                    friend.unreadMessagesCount > 0 ? "font-bold text-white" : "text-gray-300"
+                    friend?.unreadMessagesCount > 0
+                      ? "font-bold text-white"
+                      : "text-gray-300"
                   }`}
                 >
                   {friend.username}
                 </p>
                 <div className="flex items-center text-xs mt-1">
-                  {friend.unreadMessagesCount > 0 ? (
+                  {friend?.unreadMessagesCount > 0 ? (
                     <span className="bg-green-500 text-white px-2 py-0.5 rounded-full">
-                      {friend.unreadMessagesCount} unread
+                      {friend?.unreadMessagesCount} unread
                     </span>
                   ) : (
                     <span className="text-gray-500">No unread messages</span>

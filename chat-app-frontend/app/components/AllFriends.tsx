@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React from "react";
 
 interface Friend {
@@ -19,16 +19,19 @@ const AllFriends: React.FC<AllFriendsListProps> = ({ friends, loading }) => {
       {loading ? (
         <p>Loading...</p>
       ) : (
-        <ul>
-          {friends.map((friend) => (
-            <li key={friend.friendId} className="flex bg-gray-900 items-center mb-4">
+        <ul className="space-y-3">
+          {friends?.map((friend) => (
+            <li
+              key={friend?.friendId}
+              className="flex mbflex flex-row justify-between items-center bg-gray-900 hover:bg-gray-800 rounded-lg w-[80%] px-3 py-4"
+            >
               <img
-                src={friend.profilePic || "/default-profile-pic.jpg"}
-                alt={friend.username}
-                className="w-12 h-12 rounded-full mr-3"
+                src={friend?.profilePic || "/default-profile-pic.jpg"}
+                alt={friend?.username}
+                className="w-12 h-12 rounded-full mr-3 border-2 border-lime-300"
               />
               <div className="flex-1">
-                <p className="text-sm font-medium">{friend.username}</p>
+                <p className="text-sm font-medium">{friend?.username}</p>
               </div>
             </li>
           ))}
