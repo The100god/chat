@@ -3,6 +3,9 @@ import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import {disconnectSocket, useSocket} from "../hooks/useSocket";
+import { motion } from "framer-motion";
+import { useAtom } from "jotai";
+import { floatingEmojisAtom } from "../states/States";
 
 interface AuthFormProps {
   type: "signup" | "login";
@@ -22,16 +25,19 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
   const [message, setMessage] = useState<string | null>(null)
   const [varUserId, setVarUserId] = useState<string | null>(null)
   const {login} = useAuth(); 
+  const [floatingEmojis] = useAtom(floatingEmojisAtom);
   const handleChange = (e:React.ChangeEvent<HTMLInputElement>)=>{
     setFormData({
         ...formData, [e.target.name]:e.target.value
     })
   }
 
+  
   useEffect(()=>{
     if(varUserId){
       const socket = useSocket(varUserId)
-      console.log("🔗 Socket connected for user:", varUserId);
+      console.log("🔗 Socket connected for user:");
+      // console.log("🔗 Socket connected for user:", varUserId);
 
       return () => {
         disconnectSocket();
@@ -67,8 +73,37 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
 
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-900">
-      <div className="w-96 p-6 bg-gray-800 shadow-md rounded-lg">
+    <div className="flex relative justify-center items-center min-h-screen bg-background">
+      {/* 🌸 Floating faint emojis */}
+            <div className="fixed inset-0 overflow-hidden bg-transparent pointer-events-none z-0">
+              {floatingEmojis.map((e) => (
+                <motion.span
+                  key={e.id}
+                  initial={{ opacity: 0.05, y: 0 }}
+                  animate={{
+                    opacity: [0.08, 0.35, 0.06],
+                    y: [10, -25, 10],
+                    rotate: [0, 10, -10, 0],
+                  }}
+                  transition={{
+                    duration: 6 + Math.random() * 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute select-none pointer-events-none"
+                  style={{
+                    top: `${e.y}%`,
+                    left: `${e.x}%`,
+                    fontSize: `${e.size}rem`,
+                    opacity: 0.9,
+                    filter: "blur(0.5px)",
+                  }}
+                >
+                  {e.emoji}
+                </motion.span>
+              ))}
+            </div>
+      <div className="w-lg p-6 bg-transparent shadow-md rounded-lg transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] glow">
         <h2 className="text-2xl font-bold mb-4 text-center">
           {type === "signup" ? "Sign Up" : "Login"}
         </h2>
@@ -110,7 +145,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
 
           <button
             type="submit"
-            className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition"
+            className="w-full cursor-pointer bg-lime-700 text-white py-2 rounded-lg hover:bg-lime-600 transition"
           >
             {type === "signup" ? "Sign Up" : "Login"}
           </button>

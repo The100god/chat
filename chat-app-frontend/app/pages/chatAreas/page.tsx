@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useSocket } from "../../hooks/useSocket";
 import { useAtom } from "jotai";
 import {
+  floatingEmojisAtom,
   friendsAtom,
   loadingMessageAtom,
   messageAtom,
@@ -74,27 +75,10 @@ export default function ChatArea() {
   const [hasAutoScrolled, setHasAutoScrolled] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
-
+  const [floatingEmojis] = useAtom(floatingEmojisAtom);
   //group
   const [selectedGroup] = useAtom(selectedGroupAtom);
   const username = selectedFriend?.username || "Select a friend to chat";
-  const emojiSet = [
-    "💬",
-    "✨",
-    "🔥",
-    "💫",
-    "💖",
-    "🌈",
-    "🌸",
-    "🦋",
-    "🌟",
-    "💭",
-    "🌈",
-    "🌸",
-    "🦋",
-    "🌟",
-    "💭",
-  ];
 
   const colors = [
     "text-pink-400",
@@ -110,7 +94,7 @@ export default function ChatArea() {
   ];
   // Join chat and fetch messages
   useEffect(() => {
-    console.log("selectedGroup", selectedGroup);
+    // console.log("selectedGroup", selectedGroup);
     if ((!selectedFriend && !selectedGroup) || !userId) return;
 
     setLoadingMessages(true);
@@ -130,7 +114,7 @@ export default function ChatArea() {
           // console.log("data", data._id);
 
           if (socket && chatId) {
-            console.log("Joining chat room:", chatId);
+            // console.log("Joining chat room:", chatId);
             socket.emit("join", chatId);
           }
 
@@ -183,7 +167,7 @@ export default function ChatArea() {
   useEffect(() => {
     if (socket && selectedGroup?._id) {
       socket.emit("joinGroup", selectedGroup._id);
-      console.log("🔗 Joined group socket room:", selectedGroup._id);
+      // console.log("🔗 Joined group socket room:", selectedGroup._id);
     }
   }, [selectedGroup, socket]);
 
@@ -216,7 +200,7 @@ export default function ChatArea() {
     if (!socket || !selectedGroup) return;
 
     const handleGroupMessage = (message: Message) => {
-      console.log("handleGroupMessage", message);
+      // console.log("handleGroupMessage", message);
       if (message.groupId === selectedGroup._id) {
         setMessages((prev) => {
           const alreadyExists = prev.some((m) => m._id === message._id);
@@ -295,7 +279,7 @@ export default function ChatArea() {
       const mediaBase64 = await Promise.all(
         mediaFiles.map((file) => convertToBase64(file))
       );
-      console.log("media", mediaBase64);
+      // console.log("media", mediaBase64);
       const newMessage = {
         chatId,
         senderId: userId,
@@ -312,7 +296,8 @@ export default function ChatArea() {
       //     _id: `local-${Date.now()}`, // temporary until real _id from backend
       //   },
       // ]);
-      console.log("selectedGroup._id", selectedGroup?._id);
+
+      // console.log("selectedGroup._id", selectedGroup?._id);
       const endpoint = selectedGroup
         ? "http://localhost:5000/api/groups/send-group-message"
         : "http://localhost:5000/api/message";
@@ -333,10 +318,10 @@ export default function ChatArea() {
 
       const savedMessage = await res.json();
 
-      console.log("saveMessage", savedMessage);
+      // console.log("saveMessage", savedMessage);
 
       setLoadingMessages(false);
-      console.log("socketSelectedGroup", selectedGroup);
+      // console.log("socketSelectedGroup", selectedGroup);
       socket.emit(
         selectedGroup ? "sendGroupMessage" : "sendMessage",
         selectedGroup
@@ -359,6 +344,7 @@ export default function ChatArea() {
       setMediaFiles([]);
       setPreviewVisible(false);
       setMessageInput("");
+      setShowEmoji(false);
     } catch (err) {
       console.error("Error sending message:", err);
     }
@@ -509,7 +495,7 @@ export default function ChatArea() {
       const isAudio = file.type.startsWith("audio/");
 
       const url = URL.createObjectURL(file);
-      console.log("type", url);
+      // console.log("type", url);
 
       return (
         <div key={index} className="relative">
@@ -524,22 +510,6 @@ export default function ChatArea() {
       );
     });
   };
-
-  const [floatingEmojis, setFloatingEmojis] = useState<
-    { id: number; emoji: string; x: number; y: number; size: number }[]
-  >([]);
-
-  useEffect(() => {
-    // Generate random emojis across the background
-    const emojis = Array.from({ length: 20 }).map((_, i) => ({
-      id: i,
-      emoji: emojiSet[Math.floor(Math.random() * emojiSet.length)],
-      x: Math.random() * 100, // random x%
-      y: Math.random() * 100, // random y%
-      size: Math.random() * 2 + 1.1, // random scale (1.5x - 3.5x)
-    }));
-    setFloatingEmojis(emojis);
-  }, []);
 
   // console.log("selectedFriend", selectedFriend)
   // console.log("messages", messages);
@@ -799,7 +769,7 @@ export default function ChatArea() {
           </div>
         )}
       {!loadingMessages && showEmoji && (
-        <div className="flex relative left-0">
+        <div className="flex relative left-0 top-16">
           <EmojiPicker
             onEmojiClick={(emoji) => setMessageInput((prev) => prev + emoji)}
           />
@@ -807,7 +777,7 @@ export default function ChatArea() {
       )}
 
       {!loadingMessages && (selectedFriend || selectedGroup) && (
-        <div className="flex flex-row items-center mt-4 gap-2">
+        <div className="flex flex-row items-center justify-center mt-4 gap-2">
           <input
             type="file"
             multiple
@@ -818,7 +788,7 @@ export default function ChatArea() {
           />
           <label
             htmlFor="upload"
-            className="cursor-pointer px-4 py-2 border-1 border-lime-300 text-white bg-gray-800 rounded"
+            className="flex justify-center items-center cursor-pointer px-4 py-2 border-1 border-lime-300 text-white bg-gray-800 rounded"
           >
             📷
           </label>
@@ -866,7 +836,7 @@ export default function ChatArea() {
           /> */}
           <button
             onClick={sendMessage}
-            className="ml-2 bg-lime-700 px-4 py-2 rounded-md text-white"
+            className="ml-2 bg-lime-700 px-4 py-2 rounded-md text-white cursor-pointer hover:bg-lime-800"
           >
             Send
           </button>

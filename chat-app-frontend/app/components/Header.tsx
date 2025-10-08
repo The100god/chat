@@ -244,7 +244,7 @@ const Header: React.FC = () => {
           {/* Logout Button */}
           <button
             onClick={logout}
-            className="flex items-center space-x-2 bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600"
+            className="flex items-center cursor-pointer space-x-2 bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600"
           >
             <MdLogout size={20} />
             <span>Logout</span>

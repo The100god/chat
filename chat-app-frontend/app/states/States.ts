@@ -27,6 +27,14 @@ interface Message {
     }[];
   }
 
+  interface FloatingEmoji {
+  id: number;
+  emoji: string;
+  x: number;
+  y: number;
+  size: number;
+}
+
 
 // const userId:string|null = localStorage.getItem("userId")
 //     ? localStorage.getItem("userId")
@@ -53,3 +61,19 @@ export const groupMembersAtom = atom<String[]>([]);
 export const groupProfileAtom = atom<string>("");
 export const isNewGroupWindowAtom = atom<boolean>(false);
 
+const emojiSet = [
+  "💬", "✨", "🔥", "💫", "💖", "🌈",
+  "🌸", "🦋", "🌟", "💭", "🌈", "🌸",
+  "🦋", "🌟", "💭",
+];
+
+// Create an atom that initializes once with random emojis
+export const floatingEmojisAtom = atom<FloatingEmoji[]>(() => {
+  return Array.from({ length: 50 }).map((_, i) => ({
+    id: i,
+    emoji: emojiSet[Math.floor(Math.random() * emojiSet.length)],
+    x: Math.random() * 100, // random x%
+    y: Math.random() * 100, // random y%
+    size: Math.random() * 2 + 1.1, // random scale
+  }));
+});

@@ -80,6 +80,8 @@ const GroupChatPage = () => {
         setGroupProfile("");
         setGroupName("");
         setIsNewGroupWindow(false);
+        setGroupMembers([]);
+        setGroupAdmins([]);
       } else {
         console.error("Failed to create group:", groupDataRes.message);
       }
@@ -106,7 +108,7 @@ const GroupChatPage = () => {
           `http://localhost:5000/api/groups/${userId}`
         );
         const allGroups = await response.json();
-        console.log("All Groups:", allGroups);
+        // console.log("All Groups:", allGroups);
         // You can store this in state if needed
         setGroups(allGroups);
       } catch (error) {
@@ -132,7 +134,7 @@ const GroupChatPage = () => {
       socket.off("newGroupCreated", handleNewGroup);
     };
   }, [socket]);
-  console.log("groups", groups);
+  // console.log("groups", groups);
   return (
     <div className="flex h-[70%] p-2 flex-col space-y-5">
       <div

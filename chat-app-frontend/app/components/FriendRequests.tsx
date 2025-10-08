@@ -101,7 +101,7 @@ const FriendRequests = () => {
     };
   }, [userId, socket]);
 
-  console.log("requests", requests);
+  // console.log("requests", requests);
   const handleResponse = async (
     senderId: string,
     action: "accept" | "declined"

@@ -86,7 +86,7 @@ export default function LeftSection() {
       friendId: string;
       count: number;
     }) => {
-      console.log("count", count);
+      // console.log("count", count);
       setFriends((prevFriends) =>
         prevFriends.map((friend) =>
           friend.friendId === friendId
@@ -122,7 +122,7 @@ export default function LeftSection() {
     return null; // Don't show anything if not authenticated
   }
 
-  console.log("friends", friends);
+  // console.log("friends", friends);
   return (
     <div className="p-4 bg-transparent">
       {findFriend && <FindUser />}

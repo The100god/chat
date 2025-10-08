@@ -67,7 +67,7 @@ const FindUser = () => {
 
     debounceTimeout = setTimeout(async () => {
       const foundUsers = await searchUsers(searchQuery.trim(), userId);
-      console.log("foundUsers", foundUsers);
+      // console.log("foundUsers", foundUsers);
       setUsers(foundUsers);
     }, 300);
 
