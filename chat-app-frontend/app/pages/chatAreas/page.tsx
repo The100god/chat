@@ -78,7 +78,7 @@ export default function ChatArea() {
   const [floatingEmojis] = useAtom(floatingEmojisAtom);
   //group
   const [selectedGroup] = useAtom(selectedGroupAtom);
-  const username = selectedFriend?.username || "Select a friend to chat";
+  const username = selectedFriend?.username || selectedGroup?.groupName || "Select a friend to chat";
 
   const colors = [
     "text-pink-400",
@@ -522,11 +522,11 @@ export default function ChatArea() {
           }}
           className="flex flex-row justify-center items-center gap-2 p-3"
         >
-          {selectedFriend && (
+          {(selectedFriend || selectedGroup) && (
             <img
-              src={selectedFriend.profilePic}
+              src={selectedFriend?.profilePic || selectedGroup?.groupProfilePic}
               alt="image"
-              className="w-[30px] rounded-full"
+              className="w-[30px] h-[30px] object-center rounded-full"
             />
           )}
           {/* <h2 className="flex justify-center items-center text-lg font-semibold">
@@ -536,7 +536,7 @@ export default function ChatArea() {
           </h2> */}
 
           <h2 className="flex justify-center items-center text-xl font-semibold space-x-1">
-            {selectedFriend ? (
+            {(selectedFriend || selectedGroup) ? (
               <div className="flex">
                 {username.split("").map((char, i) => (
                   <motion.span
