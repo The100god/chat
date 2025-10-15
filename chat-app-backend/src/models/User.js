@@ -20,6 +20,10 @@ const UserSchema = new mongoose.Schema({
         type:Date,
         default:Date.now,
     },
+    about:{
+        type:String,
+        default:"Hey there! I am using ChatApp 💬", // Optional about section
+    },
     profilePic: {
         type: String,
         default: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0hKWzEg5DKQttwLus5tvIqozRQL-BKXF9EQ&s', // Optional profile picture

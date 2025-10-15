@@ -35,11 +35,24 @@ interface Message {
   size: number;
 }
 
+export interface User {
+  username: string;
+  email: string;
+  profilePic: string;
+  about: string;
+}
 
 // const userId:string|null = localStorage.getItem("userId")
 //     ? localStorage.getItem("userId")
 //     : null;
   
+export const userAtom = atom<User>({
+  username: "User-X",
+  email: "user@example.com",
+  profilePic: "/user.jpg",
+  about: "Hey there! I’m using ChatApp 💬",
+});
+
 export const userIdAtom=atom<string|null>(null)
 // const [userId] = useState<string|null>(() => localStorage.getItem("userId"));
 export const messageAtom = atom<Message[]>([]);

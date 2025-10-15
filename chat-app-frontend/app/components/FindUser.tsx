@@ -90,7 +90,7 @@ const FindUser = () => {
 
   return (
     <div className="flex flex-col justify-start items-start w-full h-full">
-      <h1 className="text-3xl font-medium text-lime-300 mb-2">
+      <h1 className="text-3xl font-medium text-[var(--accent)] mb-2">
         Looking For Friends?
       </h1>
 
@@ -100,7 +100,7 @@ const FindUser = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search by username"
-          className="border-b-2 outline-none bg-gray-900 h-[40px] rounded-lg p-1 pl-3 text-white w-[80%]"
+          className="border-b-2 border-[var(--accent)] outline-none bg-[var(--card)] h-[40px] rounded-lg p-1 pl-3 text-[var(--foreground)] w-[80%]"
         />
         {/* <button onClick={handleSearch}>Search</button> */}
       </div>
@@ -111,13 +111,13 @@ const FindUser = () => {
         {users?.map((user: any) => (
           <div
             key={user?._id}
-            className="flex flex-row justify-between items-center bg-gray-900 hover:bg-gray-800 rounded-lg w-[80%] px-3 py-4"
+            className="flex flex-row justify-between items-center bg-[var(--card)] hover:bg-[var(--accent)]/15 text-[var(--foreground)] border border-[var(--foreground)] hover:border-[var(--accent)] rounded-lg w-[80%] px-3 py-4"
           >
             <div className="flex flex-row justify-start items-center gap-3">
               <img
                 src={user?.profilePic}
                 alt="pic"
-                className="w-8 h-8 rounded-full border-2 border-lime-300 "
+                className="w-8 h-8 rounded-full border-2 border-[var(--accent)]"
               />
               <p>{user?.username}</p>
             </div>

@@ -80,13 +80,13 @@ const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
           <>
             <button
               onClick={handlePrev}
-              className="absolute left-4 top-1/2 p-2 -translate-y-1/2 text-green-500 cursor-pointer hover:text-gray-300 rounded-full bg-neutral-600 z-50"
+              className="absolute left-4 top-1/2 p-2 -translate-y-1/2 text-[var(--accent)] cursor-pointer hover:text-gray-300 rounded-full bg-neutral-600 z-50"
             >
               <ChevronLeft size={30} />
             </button>
             <button
               onClick={handleNext}
-              className="absolute cursor-pointer right-4 top-1/2 p-2 -translate-y-1/2 text-green-500 hover:text-gray-300 rounded-full bg-neutral-600 z-50"
+              className="absolute cursor-pointer right-4 top-1/2 p-2 -translate-y-1/2 text-[var(--accent)] hover:text-gray-300 rounded-full bg-neutral-600 z-50"
             >
               <ChevronRight size={30} />
             </button>

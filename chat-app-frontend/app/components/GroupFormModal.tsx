@@ -51,8 +51,8 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-lg">
-      <div className="relative bg-gray-900 rounded-lg w-full max-w-lg p-6 shadow-lg overflow-y-auto max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--background)]/60 backdrop-blur-lg">
+      <div className="relative bg-[var(--card)] rounded-lg w-full max-w-lg p-6 shadow-lg overflow-y-auto max-h-[90vh]">
         <div
           className=" absolute top-3 right-3 h-5 w-5 cursor-pointer hover:bg-red-500 text-red-600 hover:text-white"
           onClick={() => {
@@ -64,7 +64,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
         >
           <X className="h-full w-full  " />
         </div>
-        <h2 className="text-2xl font-bold mb-4 text-center">
+        <h2 className="text-2xl text-[var(--foreground)]] font-bold mb-4 text-center">
           Create New Group
         </h2>
 
@@ -85,7 +85,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
           />
           <label
             htmlFor="groupProfilePic"
-            className="cursor-pointer px-4 py-2 bg-blue-500 text-white rounded-md"
+            className="cursor-pointer px-4 py-2 bg-[var(--accent)] text-white rounded-md"
           >
             Upload Group Photo
           </label>
@@ -100,7 +100,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
             id="groupName"
             onChange={(e) => setGroupName(e.target.value)}
             placeholder="Enter group name"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-[var(--foreground)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--ring)] bg-[var(--input)] text-[var(--foreground)]"
           />
         </div>
 
@@ -112,13 +112,13 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
               return (
                 <div
                   key={index}
-                  className="flex justify-between items-center bg-gray-800 hover:bg-gray-700 p-2 rounded-md"
+                  className="flex justify-between items-center bg-[var(--card)] text-[var(--foreground) hover:bg-[var(--accent)]/15 border border-[var(--foreground)] hover:border-[var(--accent) transition cursor-pointer p-2 rounded-md"
                 >
                   <div className="flex flex-row gap-4 items-center">
                     <img
                       src={fnd?.profilePic}
                       alt="frend Profile"
-                      className="w-8 h-8 rounded-full object-cover border-2 border-lime-300"
+                      className="w-8 h-8 rounded-full object-cover border-2 border-[var(--accent)]"
                     />
                     <span>{fnd?.username}</span>
                   </div>
@@ -145,7 +145,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
 
         <button
           onClick={handleCreateGroupModalSubmit}
-          className="w-full cursor-pointer bg-lime-600 hover:bg-lime-700 text-white font-semibold py-2 px-4 rounded-md transition"
+          className="w-full cursor-pointer bg-[var(--accent)] hover:bg-[var(--accent)]/15 border border-[var(--accent) text-[var(--foreground)] font-semibold py-2 px-4 rounded-md transition"
         >
           Create Group
         </button>

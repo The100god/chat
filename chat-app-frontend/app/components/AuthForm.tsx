@@ -153,11 +153,11 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
 
         <p className="text-center mt-4 text-sm">
           {type === "signup" ? (
-            <a href="/login" className="text-blue-500 hover:underline">
+            <a href="/pages/login" className="text-blue-500 hover:underline">
               Already have an account? Login
             </a>
           ) : (
-            <a href="/signup" className="text-blue-500 hover:underline">
+            <a href="/pages/signup" className="text-blue-500 hover:underline">
               Don't have an account? Sign Up
             </a>
           )}

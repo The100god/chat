@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import FriendsList from "../../components/FriendsList";
 import { useAtom } from "jotai";
 import {
   allFriendsAtom,
@@ -12,13 +11,20 @@ import {
   friendsCountsAtom,
   friendsRequestsAtom,
   groupChatOpenAtom,
+  // userAtom,
   userIdAtom,
 } from "../../states/States";
-import FindUser from "../../components/FindUser";
-import FriendRequests from "../../components/FriendRequests";
-import AllFriends from "../../components/AllFriends";
+// import FriendsList from "../../components/FriendsList";
+// import FindUser from "../../components/FindUser";
+// import AllFriends from "../../components/AllFriends";
+// import FriendRequests from "../../components/FriendRequests";
+// import GroupChatPage from "../../components/GroupChatPage";
 import { useSocket } from "../../hooks/useSocket";
-import GroupChatPage from "../../components/GroupChatPage";
+import FindFriend from "../findFriends/page";
+import FindAllFriend from "../findAllFriend/page";
+import FriendRequestPage from "../friendRequestPage/page";
+import FriendListPage from "../friendListPage/page";
+import GroupChat from "../groupChatPage/page";
 
 interface Friend {
   friendId: string;
@@ -37,7 +43,7 @@ export default function LeftSection() {
   const [groupChatOpen] = useAtom(groupChatOpenAtom);
   const [, setFriendsCounts] = useAtom(friendsCountsAtom);
   const [findFriendWithChat] = useAtom(findFriendWithChatAtom);
-
+  // const [user, setUser] = useAtom(userAtom);
   const [userId, setUserId] = useAtom(userIdAtom);
   // const [userId, setUserId] = useAtom(() => localStorage.getItem("userId"));
   const socket = useSocket(userId);
@@ -118,21 +124,55 @@ export default function LeftSection() {
     });
   }, [friends]);
 
+  // useEffect(() => {
+
+  //   if (!isAuthenticated) return;
+
+  //   const fetchUserProfile = async () => {
+  //     const token = localStorage.getItem("chatAppToken");
+  //     console.log("token", token);
+  //     if (!token) return;
+
+  //     fetch(`http://localhost:5000/api/users/me`, {
+  //       method: "GET",
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //         "Content-Type": "application/json",
+  //       },
+  //     })
+  //       .then(async (res) => {
+  //         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  //         const data = await res.json();
+  //         console.log("Fetched user:", data);
+  //         setUser({
+  //           username: data.username,
+  //           email: data.email,
+  //           profilePic: data.profilePic,
+  //           about: data.about || "Hey there! I’m using ChatApp 💬",
+  //         });
+  //       })
+  //       .catch((err) => console.error("Error fetching user:", err));
+  //   };
+
+  
+  //   fetchUserProfile();
+
+  // }, [isAuthenticated]);
+
   if (!isAuthenticated) {
     return null; // Don't show anything if not authenticated
   }
 
   // console.log("friends", friends);
   return (
-    <div className="p-4 bg-transparent">
-      {findFriend && <FindUser />}
-      {friendsRequests && <FriendRequests />}
-      {allFriends && <AllFriends friends={friends} loading={loading} />}
-      {groupChatOpen && <GroupChatPage />}
-
-      {findFriendWithChat && (
-        <FriendsList loading={loading} />
-      )}
+    <div className="flex p-4 bg-[var(--background)] text-[var(--foreground)] h-full w-full rounded-md overflow-y-auto">
+      {findFriend && <FindFriend />}
+      {/* {findFriend && <FindUser />} */}
+      {/* {allFriends && <AllFriends friends={friends} loading={loading} />} */}
+      {friendsRequests && <FriendRequestPage />}
+      {allFriends && <FindAllFriend friends={friends} loading={loading} />}
+      {groupChatOpen && <GroupChat />}
+      {findFriendWithChat && <FriendListPage loading={loading} />}
       {/* {findFriend ? (
         <FindUser />
       ) : friendsRequests ? (

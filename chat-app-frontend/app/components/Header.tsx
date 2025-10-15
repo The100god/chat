@@ -20,6 +20,8 @@ import {
   groupChatOpenAtom,
   loadingMessageAtom,
   messageAtom,
+  selectedFriendAtom,
+  userAtom,
 } from "../states/States";
 import NotificationBell from "./NotificationBell";
 // import { useEffect, useRef, useState } from "react";
@@ -35,6 +37,10 @@ const Header: React.FC = () => {
   const [friendsCounts] = useAtom(friendsCountsAtom);
   const [, setMessages] = useAtom(messageAtom);
   const [, setLoadingMessages] = useAtom(loadingMessageAtom);
+  const [, setSelectedFriend] = useAtom(selectedFriendAtom);
+  
+    const [user] = useAtom(userAtom);
+
 
   // const headerRef = useRef<HTMLDivElement>(null);
   // const [transform, setTransform] = useState("rotateX(0deg) rotateY(0deg)");
@@ -89,12 +95,12 @@ const Header: React.FC = () => {
   }
   // Dummy data (replace with real data from backend)
   const friendCount = friendsCounts;
-  const profilePic = "/user.jpg"; // Dummy profile image
+  const profilePic = user.profilePic || "/user.jpg"; // Dummy profile image
   return (
-    <header className="w-full bg-black shadow-md py-4 px-6 flex justify-between items-center">
+    <header className="w-full bg-[var(--background)] text-[var(--foreground) shadow-md py-4 px-6 flex justify-between items-center">
       <div
         // ref={headerRef}
-        className={`relative w-[80%] m-auto h-20 rounded-4xl flex items-center justify-around transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] glow`}
+        className={`relative w-[80%] m-auto h-20 rounded-4xl flex items-center justify-around bg-[var(--card)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] glow`}
 
         // className={`relative w-[80%] m-auto h-20 rounded-4xl flex items-center justify-around
         //   transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] 
@@ -117,11 +123,11 @@ const Header: React.FC = () => {
         {/* Left Section */}
         <div className="flex items-center space-x-6">
           {/* Profile Picture */}
-          <Link href="/profile">
+          <Link href="/pages/profilePage">
             <img
               src={profilePic}
               alt="Profile"
-              className="w-10 h-10 rounded-full cursor-pointer border-2 border-lime-300 hover:opacity-80"
+              className="w-10 h-10 rounded-full cursor-pointer border-2 border-[var(--accent)] hover:opacity-80"
             />
           </Link>
 
@@ -134,10 +140,11 @@ const Header: React.FC = () => {
               setFindFriendWithChat(true);
               setMessages([]);
               setLoadingMessages(true);
+              setSelectedFriend(null);
               router.push("/");
             }}
           >
-            <div className="text-2xl font-bold cursor-pointer text-lime-300">
+            <div className="text-2xl font-bold cursor-pointer text-[var(--accent)] transition flex items-center space-x-2">
               {/* Gappo */}
               Chugli
             </div>
@@ -156,9 +163,10 @@ const Header: React.FC = () => {
               setFindFriendWithChat(true);
               setMessages([]);
               setLoadingMessages(true);
+              setSelectedFriend(null);
               router.push("/");
             }}
-            className="flex cursor-pointer items-center space-x-2 hover:text-lime-300"
+            className="flex cursor-pointer items-center space-x-2 hover:text-[var(--accent)]"
           >
             <FaHome size={24} />
             <span>Home</span>
@@ -173,8 +181,10 @@ const Header: React.FC = () => {
               setFindFriendWithChat(false);
               setMessages([]);
               setLoadingMessages(true);
+              setSelectedFriend(null);
+              router.push("/");
             }}
-            className="flex cursor-pointer items-center space-x-2 hover:text-lime-300"
+            className="flex cursor-pointer items-center space-x-2 hover:text-[var(--accent)]"
           >
             <FaSearch size={24} />
             <span>Find Friends</span>
@@ -189,8 +199,10 @@ const Header: React.FC = () => {
               setFindFriendWithChat(false);
               setMessages([]);
               setLoadingMessages(true);
+              setSelectedFriend(null);
+              router.push("/");
             }}
-            className="flex relative cursor-pointer items-center space-x-2 hover:text-lime-300"
+            className="flex relative cursor-pointer items-center space-x-2 hover:text-[var(--accent)]"
           >
             <FaBell size={24} />
             <span>Requests</span>
@@ -209,8 +221,10 @@ const Header: React.FC = () => {
               setFindFriendWithChat(false);
               setMessages([]);
               setLoadingMessages(true);
+              setSelectedFriend(null);
+              router.push("/");
             }}
-            className="flex cursor-pointer items-center space-x-2 hover:text-lime-300"
+            className="flex cursor-pointer items-center space-x-2 hover:text-[var(--accent)]"
           >
             <FaUserFriends size={24} />
             <span>{friendCount} Friends</span>
@@ -226,8 +240,10 @@ const Header: React.FC = () => {
               setFindFriendWithChat(false);
               setMessages([]);
               setLoadingMessages(true);
+              setSelectedFriend(null);
+              router.push("/");
             }}
-            className="flex cursor-pointer items-center space-x-2 hover:text-lime-300"
+            className="flex cursor-pointer items-center space-x-2 hover:text-[var(--accent)]"
           >
             <FaUsers size={24} />
             <span>Groups</span>
@@ -237,14 +253,14 @@ const Header: React.FC = () => {
         {/* Right Section */}
         <div className="flex items-center space-x-4">
           {/* Settings */}
-          <Link href="/settings" className="hover:text-lime-300">
-            <FaCog size={24} />
+          <Link href="/pages/settings" className="hover:text-[var(--accent)]">
+            <FaCog className="hover:rotate-90 transition duration-200" size={24} />
           </Link>
 
           {/* Logout Button */}
           <button
             onClick={logout}
-            className="flex items-center cursor-pointer space-x-2 bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600"
+            className="flex items-center cursor-pointer space-x-2 bg-red-500 border-2 border-black hover:border-red-800 text-[var(--foreground)] px-3 py-2 rounded-lg hover:bg-red-400"
           >
             <MdLogout size={20} />
             <span>Logout</span>

@@ -78,7 +78,10 @@ export default function ChatArea() {
   const [floatingEmojis] = useAtom(floatingEmojisAtom);
   //group
   const [selectedGroup] = useAtom(selectedGroupAtom);
-  const username = selectedFriend?.username || selectedGroup?.groupName || "Select a friend to chat";
+  const username =
+    selectedFriend?.username ||
+    selectedGroup?.groupName ||
+    "Select a friend to chat";
 
   const colors = [
     "text-pink-400",
@@ -514,7 +517,7 @@ export default function ChatArea() {
   // console.log("selectedFriend", selectedFriend)
   // console.log("messages", messages);
   return (
-    <div className="flex flex-col bg-transparent h-full p-2 pb-5 overflow-y-auto">
+    <div className="flex flex-col bg-[var(--background)] h-full p-2 pb-5 rounded-md overflow-y-auto">
       {!loadingMessages && (
         <div
           onClick={() => {
@@ -526,7 +529,7 @@ export default function ChatArea() {
             <img
               src={selectedFriend?.profilePic || selectedGroup?.groupProfilePic}
               alt="image"
-              className="w-[30px] h-[30px] object-center rounded-full"
+              className="w-[30px] h-[30px] object-cover rounded-full border border-[var(--accent)]"
             />
           )}
           {/* <h2 className="flex justify-center items-center text-lg font-semibold">
@@ -535,8 +538,8 @@ export default function ChatArea() {
               : "Select a friend to chat"}
           </h2> */}
 
-          <h2 className="flex justify-center items-center text-xl font-semibold space-x-1">
-            {(selectedFriend || selectedGroup) ? (
+          <h2 className="flex justify-center items-center text-xl font-semibold space-x-1 text-[var(--foreground)]">
+            {selectedFriend || selectedGroup ? (
               <div className="flex">
                 {username.split("").map((char, i) => (
                   <motion.span
@@ -558,7 +561,7 @@ export default function ChatArea() {
                 ))}
               </div>
             ) : (
-              <span className="text-gray-500">{username}</span>
+              <span className="text-[var(--muted)]">{username}</span>
             )}
           </h2>
         </div>
@@ -566,7 +569,7 @@ export default function ChatArea() {
       {!loadingMessages ? (
         <div
           ref={chatContainerRef}
-          className="h-[85%] bg-gray-950 p-4 rounded-lg shadow-inner overflow-y-auto space-y-2"
+          className="h-[85%] bg-[var(--background)] p-2 rounded-md shadow-inner overflow-y-auto space-y-2"
           onScroll={() => {
             if (chatContainerRef.current) {
               const el = chatContainerRef.current;
@@ -582,7 +585,7 @@ export default function ChatArea() {
             onClick={() => {
               setShowEmoji(false);
             }}
-            className=" relative h-full bg-gray-950 p-4 rounded-lg shadow-inner overflow-y-auto space-y-2"
+            className=" relative h-full bg-[var(--muted)] p-4 rounded-lg shadow-inner overflow-y-auto space-y-2"
           >
             {/* 🌸 Floating faint emojis */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -634,11 +637,23 @@ export default function ChatArea() {
                 return (
                   <div
                     key={msg?._id || idx}
-                    className={`p-3 pr-4 relative rounded-md max-w-[70%] w-fit break-words whitespace-pre-wrap text-black ${
-                      isSentByUser
-                        ? "bg-lime-400 ml-auto"
-                        : "bg-lime-100 mr-auto"
-                    }`}
+                    className={` p-3 pr-4 relative rounded-md max-w-[70%] w-fit break-words whitespace-pre-wrap`}
+                    // ${
+                    //   isSentByUser
+                    //     ? "bg-lime-400 ml-auto"
+                    //     : "bg-lime-100 mr-auto"
+                    // }
+                    style={{
+                      backgroundColor: isSentByUser
+                        ? "var(--primary)"
+                        : "var(--card)",
+                      color: isSentByUser
+                        ? "var(--card-foreground)"
+                        : "var(--foreground)",
+                      marginLeft: isSentByUser ? "auto" : "0",
+                      marginRight: isSentByUser ? "0" : "auto",
+                      
+                    }}
                   >
                     {msg.media && msg.media?.length > 0 && (
                       <div
@@ -672,7 +687,7 @@ export default function ChatArea() {
                               key={index}
                               src={url}
                               onClick={openModal}
-                              className="w-24 h-24 cursor-pointer"
+                              className="w-24 h-24 cursor-pointer rounded-md border border-[var(--accent)]"
                               // controls
                             />
                           ) : url.endsWith(".webm") ? (
@@ -687,7 +702,7 @@ export default function ChatArea() {
                               key={index}
                               src={url}
                               onClick={openModal}
-                              className="w-24 h-24 rounded cursor-pointer"
+                              className="w-24 h-24 rounded cursor-pointer border border-[var(--accent)]"
                             />
                           );
                         })}
@@ -699,7 +714,7 @@ export default function ChatArea() {
                               setCurrentMediaIndex(3);
                               setShowMediaModal(true);
                             }}
-                            className="w-24 h-24 flex items-center justify-center bg-black bg-opacity-60 text-white rounded cursor-pointer"
+                            className="w-24 h-24 flex items-center justify-center bg-[var(--background)] bg-opacity-60 text-[var(--foreground)] rounded cursor-pointer"
                           >
                             +{(msg.media?.length || 0) - 3}
                           </div>
@@ -708,7 +723,7 @@ export default function ChatArea() {
                     )}
                     {msg.content}
                     {isSentByUser && msg.isRead && selectedFriend && (
-                      <span className="text-sm absolute right-0 bottom-0 text-gray-400 ml-2">
+                      <span className="text-xs absolute right-0 bottom-0 text-[var(--muted)] ml-2">
                         👀
                       </span>
                     )}
@@ -723,11 +738,11 @@ export default function ChatArea() {
                               key={i}
                               src={user.profilePic}
                               title={user.username}
-                              className="w-4 h-4 rounded-full"
+                              className="w-4 h-4 rounded-full border border-[var(--accent)]"
                             />
                           ))}
                         {msg.seenBy.length > 4 && (
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-[var(--muted)]">
                             +{msg.seenBy.length - 4}
                           </span>
                         )}
@@ -737,13 +752,13 @@ export default function ChatArea() {
                 );
               })}
             {typingFriend && (
-              <div className="text-sm italic text-white">Typing...</div>
+              <div className="text-sm italic text-[var(--accent)]">Typing...</div>
             )}
             <div ref={bottomRef} />
           </div>
         </div>
       ) : (
-        <div className="h-[100%] bg-gray-950 p-4 rounded-lg flex items-center justify-center text-white text-sm">
+        <div className="h-[100%] bg-[var(--muted)] p-4 rounded-lg flex items-center justify-center text-[var(--foreground)] text-sm">
           <ChatAreaLoading />
         </div>
       )}
@@ -753,7 +768,7 @@ export default function ChatArea() {
         mediaFiles.length > 0 && (
           <div className=" relative flex flex-wrap gap-2 mb-2">
             {renderMediaPreviews()}
-            <span className="text-white absolute bottom-1 right-0 text-sm ml-2">
+            <span className="text-[var(--foreground)] absolute bottom-1 right-0 text-sm ml-2">
               {mediaFiles.length} selected
             </span>
 
@@ -764,7 +779,7 @@ export default function ChatArea() {
                 setMediaFiles([]);
               }}
             >
-              <X className="hover:text-red-500" />
+              <X className="hover:text-[var(--accent)]" />
             </div>
           </div>
         )}
@@ -788,7 +803,7 @@ export default function ChatArea() {
           />
           <label
             htmlFor="upload"
-            className="flex justify-center items-center cursor-pointer px-4 py-2 border-1 border-lime-300 text-white bg-gray-800 rounded"
+            className="flex justify-center items-center cursor-pointer px-4 py-2 border-1 border-[var(--accent)] hover:bg-[var(--accent)]/15 text-[var(--foreground)] bg-[var(--card)] rounded"
           >
             📷
           </label>
@@ -802,7 +817,7 @@ export default function ChatArea() {
           />
 
           <div
-            className="cursor-pointer px-4 py-2 text-white border-1 border-lime-300 bg-gray-800 rounded"
+            className="cursor-pointer px-4 py-2 text-[var(--foreground)] hover:bg-[var(--accent)]/15 border-1 border-[var(--accent)] bg-[var(--card)] rounded"
             onClick={() => setShowEmoji(!showEmoji)}
           >
             😀
@@ -817,7 +832,7 @@ export default function ChatArea() {
                 sendMessage();
               }
             }}
-            className="flex-1 px-4 py-2 rounded-md bg-gray-800 text-white outline-none resize-none"
+            className="flex-1 px-4 py-2 rounded-md bg-[var(--card)] text-[var(--foreground)] outline-none resize-none"
             placeholder="Type a message..."
             rows={1}
           />
@@ -836,7 +851,7 @@ export default function ChatArea() {
           /> */}
           <button
             onClick={sendMessage}
-            className="ml-2 bg-lime-700 px-4 py-2 rounded-md text-white cursor-pointer hover:bg-lime-800"
+            className="ml-2 bg-[var(--accent)] text-[var(--card-foreground)] px-4 py-2 rounded-md cursor-pointer hover:opacity-90 transition"
           >
             Send
           </button>

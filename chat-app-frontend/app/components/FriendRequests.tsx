@@ -124,7 +124,7 @@ const FriendRequests = () => {
   };
 
   return (
-    <div className="p-4 bg-gray-950 shadow-md rounded-md w-[90%]">
+    <div className="p-4 bg-[var(--background)] text-[var(--foreground) shadow-md rounded-md w-[90%]">
       <h2 className="text-lg font-semibold mb-3">Friend Requests</h2>
       {loading ? (
         <p>Loading...</p>
@@ -134,12 +134,12 @@ const FriendRequests = () => {
         requests?.map((req) => (
           <div
             key={req?._id}
-            className="flex justify-between items-center bg-gray-900 p-2 rounded-md mb-2"
+            className="flex justify-between items-center bg-[var(--muted)] text-[var(--foreground)] hover:bg-[var(--accent)]/15 border border-[var(--foreground)] hover:border-[var(--accent)] cursor-pointer transition duration-200 p-2 rounded-md mb-2"
           >
             <div className="flex flex-row gap-2 items-center">
-              <span className="flex border border-white rounded-full w-8 h-8 p-[1px] justify-center items-center">
+              <span className="flex border border-[var(--accent)] rounded-full w-8 h-8 p-[1px] justify-center items-center">
                 <img
-                  className="flex rounded-full border-2 border-lime-300 w-full h-full"
+                  className="flex rounded-full border-2 border-[var(--accent)] w-full h-full"
                   src={req?.profilePic}
                   alt="pic"
                 />
@@ -148,7 +148,7 @@ const FriendRequests = () => {
             </div>
             <div>
               <button
-                className="bg-green-500 cursor-pointer text-white px-2 py-1 rounded-md mr-2"
+                className="bg-[var(--accent)] cursor-pointer text-[var(--foreground)] px-2 py-1 rounded-md mr-2"
                 onClick={() => handleResponse(req?._id, "accept")}
               >
                 Accept

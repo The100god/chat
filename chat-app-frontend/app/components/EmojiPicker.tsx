@@ -9,7 +9,7 @@ interface Props {
 
 const EmojiPicker: React.FC<Props> = ({ onEmojiClick }) => {
   return (
-    <div className="absolute bottom-14 left-0 z-50">
+    <div className="absolute bottom-14 left-0 z-50 bg-[var(--background)] border border-[var(--muted)] rounded-lg shadow-lg">
       <EmojiPickerLib
         onEmojiClick={(emojiData) => onEmojiClick(emojiData.emoji)}
         theme={Theme.AUTO}

@@ -1,9 +1,12 @@
 "use client";
+import { useAtom } from "jotai";
 import { usePathname, useRouter } from "next/navigation";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { User, userAtom } from "../states/States";
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  user: User;
   login: (token: string) => void;
   logout: () => void;
 }
@@ -18,19 +21,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const router = useRouter();
   const pathname = usePathname();
+  const [user, setUser] = useAtom<User>(userAtom);
+  const [, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("chatAppToken");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    fetch("http://localhost:5000/api/users/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Unauthorized");
+        const data = await res.json();
+        setUser({
+          username: data.username,
+          email: data.email,
+          profilePic: data.profilePic,
+          about: data.about || "Hey there! I’m using ChatApp 💬",
+        });
+      })
+      .catch(() => {
+        localStorage.removeItem("chatAppToken");
+        setUser({} as User);
+        setIsAuthenticated(false);
+        if (pathname !== "/pages/login" && pathname !== "/pages/signup") {
+          router.push("/pages/login");
+        }
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   //Check if token exist in localstorage on initial load
   useEffect(() => {
     const chatAppToken = localStorage.getItem("chatAppToken");
     if (chatAppToken) {
       setIsAuthenticated(true);
-      if (pathname === "/login" || pathname === "/signup") {
+      if (pathname === "/pages/login" || pathname === "/pages/signup") {
         router.push("/"); // Redirect to home if logged in
       }
     } else {
       // Allow access to login and signup pages if no token
-      if (pathname !== "/login" && pathname !== "/signup") {
-        router.push("/login");
+      if (pathname !== "/pages/login" && pathname !== "/pages/signup") {
+        router.push("/pages/login");
       }
     }
   }, [pathname]);
@@ -46,11 +82,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = () => {
     localStorage.removeItem("chatAppToken");
     setIsAuthenticated(false);
-    router.push("/login");
+    setUser({} as User);
+    router.push("/pages/login");
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

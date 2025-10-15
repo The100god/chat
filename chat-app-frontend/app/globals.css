@@ -5,8 +5,53 @@
 
 
 :root {
-  --background: #0f0e0e;
-  --foreground: #ffffff;
+  --background: #ededed;
+  --foreground: #000000;
+  --primary: #0aa38c; /* blue-700 */
+  --secondary: #9333ea; /* purple-600 */
+  --accent: #10b981; /* green-500 */
+  --muted: #f3f4f6; /* gray-100 */
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --border: #e5e7eb;
+  --input: #ffffff;
+  --ring: #1d4ed8; /* blue-700 */
+}
+
+/* ---------- Dark Theme ---------- */
+[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --primary: #0aa38c; /* blue-500 */
+  --secondary: #a855f7; /* purple-500 */
+  --accent: #22c55e; /* green-400 */
+  --muted: #1f2937; /* gray-800 */
+  --card: #1a1a1a;
+  --card-foreground: #f3f4f6;
+  --popover: #1a1a1a;
+  --popover-foreground: #f3f4f6;
+  --border: #1f2937;
+  --input: #1a1a1a;
+  --ring: #3b82f6; /* blue-500 */
+}
+
+/* ---------- Custom Theme Example (e.g. “Aurora”) ---------- */
+[data-theme="aurora"] {
+  --background: #101820;
+  --foreground: #e0f7fa;
+  --primary: #00bcd4;
+  --secondary: #ff4081;
+  --accent: #4caf50;
+  --muted: #1e293b;
+  --card: #17212b;
+  --card-foreground: #e0f2f1;
+  --popover: #17212b;
+  --popover-foreground: #e0f2f1;
+  --border: #1e293b;
+  --input: #17212b;
+  --ring: #00bcd4;
 }
 
 @theme inline {
@@ -16,18 +61,22 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
+/* @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
-}
+} */
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background 0.3s, color 0.3s;
 }
+
+/* ---------- Scrollbar Hidden ---------- */
+
 
 * {
   scrollbar-width: none; /* Firefox */
@@ -37,6 +86,8 @@ body {
 *::-webkit-scrollbar {
   display: none; /* Chrome/Safari */
 }
+
+/* ---------- Glow Effects ---------- */
 .glow {
   box-shadow:
     0 0 14px rgba(255, 255, 255, 0.2),
@@ -45,6 +96,7 @@ body {
   transition: box-shadow 0.5s ease-in-out;
 }
 
+/* ---------- Shimmer Loading ---------- */
 .shimmer-mask {
   background: linear-gradient(
     120deg,
@@ -66,6 +118,7 @@ body {
   }
 }
 
+/* ---------- Animations ---------- */
 @keyframes fadeInOut {
   0%, 100% {
     opacity: 0;

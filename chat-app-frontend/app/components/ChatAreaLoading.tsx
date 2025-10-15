@@ -56,7 +56,7 @@ const ChatAreaLoading = () => {
       {items?.map((item, index) => (
         <div
           key={index}
-          className="absolute text-white text-xs md:text-sm opacity-0 animate-fadeInOut select-none transition-all duration-700"
+          className="absolute text-[var(--foreground)] text-xs md:text-sm opacity-0 animate-fadeInOut select-none transition-all duration-700"
           style={{
             left: `${item.x}%`,
             top: `${item.y}%`,
